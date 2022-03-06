@@ -9,13 +9,17 @@ const AmmortizationCalculator = () =>{
     const [termLength, setTermLength] = useState(36);
     const [payment, setPayment] = useState(0);
     const [ammortizationTable, setAmmortizationTable] = useState([]);
+    const [totalInterest, setTotalInterest] = useState(0);
+    const [totalOverall, setTotalOverall] = useState(0);
 
     const handleCalculate = () => {
          console.log(`amount: ${amount}`);
          console.log(`interest rate: ${interestRate}`);
          console.log(`term length: ${termLength}`);
-         setPayment(calculatePayment(amount, interestRate, termLength));
-         createAmmortizationTable(amount, interestRate, termLength);         
+         let paymentAmount = calculatePayment();
+         setPayment(paymentAmount);
+         createAmmortizationTable();  
+         setTotalOverall(termLength*payment);       
     };
 
     const calculatePayment = () =>{
@@ -59,77 +63,102 @@ const AmmortizationCalculator = () =>{
         }
 
         setAmmortizationTable(payments);
+        setTotalInterest(totalInterest);
 
-    }
+    };
 
     const getFormattedCurrency = (currency) =>{
         return `$ ${currency.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
-    }
+    };
  
  return (
         <div>
 
             <Link href="/">
                 <a>
-                    Back Home
+                 <h2>Back</h2>   
                 </a>
             </Link>
 
-            <div className="mb-3">
-            <label htmlFor="amountInput" className="form-label">Loan Amount</label>
-            <NumericInput 
-                style={false} 
-                type="text" 
-                className="form-control" 
-                id="amountInput" 
-                placeholder="1000" 
-                value={amount}
-                onChange={ value => setAmount(value)}
-                />
-            </div>
-            <div className="mb-3">
-            <label htmlFor="interestRateInput" className="form-label">Interest Rate</label>
-            <NumericInput 
-               style={false} 
-               step={0.01} 
-               precision={2} 
-               value={interestRate} 
-               onChange={ value => setInterestRate(value)}
-               type="text" 
-               className="form-control" 
-               id="InterestRateInput" 
-               placeholder="3.5" />
-            </div>
-            <div className="mb-3">
-            <label htmlFor="termLengthInMonthsInput" className="form-label">Term Length (in months)</label>
-            <NumericInput 
-               style={false}  
-               step={1} 
-               precision={0} 
-               value={termLength} 
-               onChange={ value => setTermLength(value)}
-               type="text" 
-               className="form-control" 
-               id="termLengthInMonthsInput" 
-               placeholder="120" />
-            </div>
-            <div className="mb-3">
-                <button
-                    className="btn btn-primary"
-                    type="button"
-                    id="ammortizationCalculate"
-                    aria-expanded="false"
-                    onClick={ () => handleCalculate()}
-                > Compute </button>
-            </div>
-            <div>
-                Payment: {`$ ${payment.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`}
-            </div>
+            <div className="container">
+                <div className="row gx-5 form-group">
+                    <div className="col-2">
+                        <label htmlFor="amountInput" className="form-label">Loan Amount</label>
+                    </div>
+                    <div className="col-3">
+                        <NumericInput 
+                            style={false} 
+                            type="text" 
+                            className="form-control" 
+                            id="amountInput" 
+                            placeholder="1000" 
+                            value={amount}
+                            onChange={ value => setAmount(value)}
+                            />
+                    </div>
+                </div>
+                <div className="row gx-5 form-group">
+                    <div className="col-2">
+                        <label htmlFor="interestRateInput" className="form-label">Interest Rate</label>
+                    </div>
+                    <div className="col-3">
+                        <NumericInput 
+                        style={false} 
+                        step={0.01} 
+                        precision={2} 
+                        value={interestRate} 
+                        onChange={ value => setInterestRate(value)}
+                        type="text" 
+                        className="form-control" 
+                        id="InterestRateInput" 
+                        placeholder="3.5" />
+                    </div>
+                </div>
+                <div className="row gx-5 form-group">
+                    <div className="col-2">
+                        <label htmlFor="termLengthInMonthsInput" className="form-label">Term Length</label>
+                    </div>
+                    <div className="col-3">
+                        <NumericInput 
+                        style={false}  
+                        step={1} 
+                        precision={0} 
+                        value={termLength} 
+                        onChange={ value => setTermLength(value)}
+                        type="text" 
+                        className="form-control" 
+                        id="termLengthInMonthsInput" 
+                        placeholder="120" />
+
+                    </div>
+                </div>    
+                <div className="row">
+                    <div className="col-6">
+                        <button
+                            className="btn btn-primary"
+                            type="button"
+                            id="ammortizationCalculate"
+                            aria-expanded="false"
+                            onClick={ () => handleCalculate()}
+                        > Compute </button>   
+                    </div>
+                </div>
+
+            
 
             {
                 ammortizationTable.length > 0 && 
-                (<table class="table">
-                    <thead class="thead-dark">
+                (
+                    <>
+                    <h2>Summary</h2>
+                    <ul className="list-group">
+                        <li className="list-group-item">Payment: {`${getFormattedCurrency(payment)}`}</li>
+                        <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(totalInterest)}`}</li>
+                        <li className="list-group-item">Total: {`${getFormattedCurrency(totalOverall)}`}   </li>
+                    </ul>
+                  <h2>Ammortization Table</h2>  
+                  <table className="table table-striped table-sm">
+                    <thead className="thead-dark">
                     <tr>
                         <th scope="col">#</th>
                         <th scope="col">Principal</th>
@@ -147,8 +176,10 @@ const AmmortizationCalculator = () =>{
                         </tr>
                     ))}
                     </tbody>
-                </table>)
+                </table>
+                </>)
             }
+        </div>
         </div>
 
     );
