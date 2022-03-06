@@ -25,7 +25,7 @@ const SudokuSolver = () =>{
             value = 0;
 
         let newBoard = cloneBoard();
-        
+
         newBoard[row][col] = value;
         setBoard(newBoard);
     }
@@ -52,7 +52,12 @@ const SudokuSolver = () =>{
     let boardElements = [];
     for(let i=0; i<9;i++){
         boardElements[i] = board[i].map( (x, j)=>{
-            return(<div className="col-1">
+            let padding = 0;
+
+            if(((j+1)%3) == 0){
+                padding = 25;
+            }
+            return(<div className={`col-1`} style={{width: 100, padding: 0, marginRight: padding}}>
                     <NumericInput 
                         style={false} 
                         type="text" 
@@ -68,55 +73,74 @@ const SudokuSolver = () =>{
     }
 
     return (
-    <div className="container">
+    <div className="container bg-lighter text-secondary">
         <Link href="/">
             <a>
                 <h2> &larr; Back</h2>   
             </a>
         </Link>
-        <div className="row" className="styles.card">
-            <h2>Sudoku solver </h2>
-            <p>Plug in the numbers that your puzzle has and click solve</p>
+        <div className="row pb-5">
+            <div className="col-2"></div>
+            <div className="col-5 jumbotron">
+                <h2 text-primary>Sudoku solver </h2>
+                <p>Plug in the numbers that your puzzle has and click solve</p>
+            </div>
         </div>
-        <div className="row">
-            <div className="col-6">
+        <div className="row pb-5">
+            <div className="col-1"></div>
+            <div className="col-8">
                 <button
-                    className="btn btn-primary"
+                    
+                    style={{width:'100%', padding: 20, margin: 0 }}
+                    className="btn btn-info text-white"
                     type="button"
                     id="ammortizationCalculate"
                     aria-expanded="false"
                     onClick={ () => solvePuzzle()}
-                > Solve </button>   
+                > <h2>Solve</h2> </button>   
             </div>
         </div>
 
-        <div className="row gx-5 form-group">
-            <div className="row">
-                {boardElements[0]}
-            </div>
-            <div className="row">
-                {boardElements[1]}
-            </div>
-            <div className="row">
-                {boardElements[2]}
-            </div>
-            <div className="row">
-                {boardElements[3]}
-            </div>
-            <div className="row">
-                {boardElements[4]}
-            </div>
-            <div className="row">
-                {boardElements[5]}
-            </div>
-            <div className="row">
-                {boardElements[6]}
-            </div>
-            <div className="row">
-                {boardElements[7]}
-            </div>
-            <div className="row">
-                {boardElements[8]}
+        <div className="row pb-5 text-primary">
+            <div className="col-1"/>
+            <div className="col-10">
+                <div className="row gx-5 form-group">
+                    <div className="row pb-4">
+                        <div className="row">
+                            {boardElements[0]}
+                        </div>
+                        <div className="row">
+                            {boardElements[1]}
+                        </div>
+                        <div className="row">
+                            {boardElements[2]}
+                        </div>
+                    </div>
+
+                    <div className="row pb-4">
+                        <div className="row">
+                            {boardElements[3]}
+                        </div>
+                        <div className="row">
+                            {boardElements[4]}
+                        </div>
+                        <div className="row">
+                            {boardElements[5]}
+                        </div>
+                    </div>
+
+                    <div className="row">
+                        <div className="row">
+                            {boardElements[6]}
+                        </div>
+                        <div className="row">
+                            {boardElements[7]}
+                        </div>
+                        <div className="row">
+                            {boardElements[8]}
+                        </div>   
+                    </div>
+                </div>
             </div>
         </div>
     </div>);
