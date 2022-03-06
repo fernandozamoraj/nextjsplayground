@@ -76,7 +76,7 @@ const AmmortizationCalculator = () =>{
 
             <Link href="/">
                 <a>
-                 <h2>Back</h2>   
+                 <h2>&larr; Back</h2>   
                 </a>
             </Link>
 

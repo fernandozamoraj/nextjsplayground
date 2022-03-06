@@ -25,10 +25,12 @@ export default function Home() {
           </a>
           </Link>
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
+          <Link href="/sudokuSolver">
+            <a className={styles.card}>
+            <h2>Sudoku Solver &rarr;</h2>
+            <p>Plug in the numbers and solve any Sudoku puzzle</p>
           </a>
+          </Link>
 
           <a
             href="https://github.com/vercel/next.js/tree/canary/examples"
