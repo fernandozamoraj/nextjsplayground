@@ -80,15 +80,11 @@ const SudokuSolver = () =>{
             </a>
         </Link>
         <div className="row pb-5">
-            <div className="col-2"></div>
-            <div className="col-5 jumbotron">
+            <div className="col-1"></div>
+            <div className="col-8 jumbotron">
                 <h2 text-primary>Sudoku solver </h2>
                 <p>Plug in the numbers that your puzzle has and click solve</p>
-            </div>
-        </div>
-        <div className="row pb-5">
-            <div className="col-1"></div>
-            <div className="col-8">
+                <p>
                 <button
                     
                     style={{width:'100%', padding: 20, margin: 0 }}
@@ -98,6 +94,7 @@ const SudokuSolver = () =>{
                     aria-expanded="false"
                     onClick={ () => solvePuzzle()}
                 > <h2>Solve</h2> </button>   
+                </p>
             </div>
         </div>
 
