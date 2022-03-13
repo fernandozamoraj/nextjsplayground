@@ -57,7 +57,7 @@ const SudokuSolver = () =>{
             if(((j+1)%3) == 0){
                 padding = 25;
             }
-            return(<div className={`col-1`} style={{width: 100, padding: 0, marginRight: padding}}>
+            return(<div key={`board-element-${i}-${j}`} className={`col-1`} style={{width: 100, padding: 0, marginRight: padding}}>
                     <NumericInput 
                         style={false} 
                         type="text" 
