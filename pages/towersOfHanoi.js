@@ -67,7 +67,7 @@ const TowersOfHanoi = () =>{
         <div className="row pb-5">
             <div className="col-1"></div>
             <div className="col-8 jumbotron text-center">
-                <h2 text-primary>Sudoku solver </h2>
+                <h2 text-primary>Towers of Hanoi </h2>
                 <p>Solve the towers</p>
                 <p>
                 <button
@@ -99,10 +99,10 @@ const TowersOfHanoi = () =>{
                         {getDiskStack('A', [...towers.A], 7)}
                     </div>
                     <div class="col-sm">
-                    {getDiskStack('B', [...towers.B], 7)}
+                        {getDiskStack('B', [...towers.B], 7)}
                     </div>
                     <div class="col-sm">
-                    {getDiskStack('C', [...towers.C], 7)}
+                        {getDiskStack('C', [...towers.C], 7)}
                     </div>
                 </div>
             </div>
@@ -110,7 +110,7 @@ const TowersOfHanoi = () =>{
                 <ul>
                     {moves.map( move =>{
                         return (
-                            <li>{`${move.from}-> ${move.to}`}</li>
+                            <li>{`${move.from}`}&rarr;{`${move.to}`}</li>
                         );
                     })}
                 </ul>
