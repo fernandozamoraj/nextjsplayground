@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import NumericInput from 'react-numeric-input';
 import Link from 'next/link';
-import { solveSudoku } from './services/sudokuSolverFunctions';
+import { solveSudoku } from '../utils/services/sudokuSolverFunctions';
 
 const INITIAL_BOARD = 
 [ [0, 1, 0, 0, 2, 0, 0, 9, 0],  //1

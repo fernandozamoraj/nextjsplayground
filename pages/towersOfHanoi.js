@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { solveTowersOfHanoi } from './services/towersOfHanoiAlgorithm'
+import { solveTowersOfHanoi } from '../utils/services/towersOfHanoiAlgorithm'
 
 
 const TowersOfHanoi = () =>{
