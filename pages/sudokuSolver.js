@@ -81,7 +81,7 @@ const SudokuSolver = () =>{
         </Link>
         <div className="row pb-5">
             <div className="col-1"></div>
-            <div className="col-8 jumbotron">
+            <div className="col-8 jumbotron text-center">
                 <h2 text-primary>Sudoku solver </h2>
                 <p>Plug in the numbers that your puzzle has and click solve</p>
                 <p>

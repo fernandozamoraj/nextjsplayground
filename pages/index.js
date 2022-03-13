@@ -32,13 +32,12 @@ export default function Home() {
           </a>
           </Link>
 
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
+          <Link href="/towersOfHanoi">
+            <a className={styles.card}>
+            <h2>Towers of Hanoi &rarr;</h2>
+            <p>Visual implementation of towers of hanoi</p>
           </a>
+          </Link>
 
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
