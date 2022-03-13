@@ -40,9 +40,6 @@ const TowersOfHanoi = () =>{
         while(newDisks.length < towerHeight){
             newDisks.unshift(-1);
         }
-
-        console.log(col);
-        console.log(newDisks);
         const colorClasses = ['bg-primary', 'bg-danger', 'bg-success', 'bg-warning', 'bg-info'];
         return (
             newDisks.map( (x, index) =>{
@@ -67,11 +64,10 @@ const TowersOfHanoi = () =>{
         <div className="row pb-5">
             <div className="col-1"></div>
             <div className="col-8 jumbotron text-center">
-                <h2 text-primary>Towers of Hanoi </h2>
+                <h2 className="text-primary">Towers of Hanoi </h2>
                 <p>Solve the towers</p>
                 <p>
                 <button
-                    
                     style={{width:'100%', padding: 20, margin: 0 }}
                     className="btn btn-info text-white"
                     type="button"
@@ -93,28 +89,27 @@ const TowersOfHanoi = () =>{
                 </p>
 
             </div>
-            <div class="container">
-                <div class="row">
-                    <div class="col-sm">
+            <div className="container">
+                <div className="row">
+                    <div className="col-sm">
                         {getDiskStack('A', [...towers.A], 7)}
                     </div>
-                    <div class="col-sm">
+                    <div className="col-sm">
                         {getDiskStack('B', [...towers.B], 7)}
                     </div>
-                    <div class="col-sm">
+                    <div className="col-sm">
                         {getDiskStack('C', [...towers.C], 7)}
                     </div>
                 </div>
             </div>
-            <p>
+
                 <ul>
-                    {moves.map( move =>{
+                    {moves.map( (move, index) =>{
                         return (
-                            <li>{`${move.from}`}&rarr;{`${move.to}`}</li>
+                            <li key={`move-${index}-${move.from}-${move.to}`}>{`${move.from}`}&rarr;{`${move.to}`}</li>
                         );
                     })}
                 </ul>
-            </p>
         </div>
     </div>
     );
