@@ -7,15 +7,21 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>A portfolio of next in a next JS Application</title>
+        <title>Fernando's NextJS Playground</title>
         <meta name="description" content="a first next js application" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Welcome to my portfolio
+          Fernando's NextJS Playground
         </h1>
+        <p>
+          All code available at <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank">https://github.com/fernandozamoraj/nextjsplayground</a>
+        </p>
+        <p className="bg-warning">
+              This content requires a large (PC) screen for the best experience
+        </p>
 
         <div className={styles.grid}>
           <Link href="/ammortizationCalculator">
@@ -42,11 +48,13 @@ export default function Home() {
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}
+            target="_blank"
           >
             <h2>Deploy &rarr;</h2>
             <p>
               Instantly deploy your Next.js site to a public URL with Vercel.
             </p>
+
           </a>
         </div>
       </main>
