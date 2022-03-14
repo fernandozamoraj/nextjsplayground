@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import NumericInput from 'react-numeric-input';
 import Link from 'next/link';
-import { solveSudoku } from '../utils/services/sudokuSolverFunctions';
+import { solveSudoku, isValidMove } from '../utils/services/sudokuSolverFunctions';
 
 const INITIAL_BOARD = 
 [ [0, 1, 0, 0, 2, 0, 0, 9, 0],  //1
@@ -19,6 +19,7 @@ const INITIAL_BOARD =
 const SudokuSolver = () =>{
 
     const [board, setBoard] = useState(INITIAL_BOARD);
+    const [validationMessage, setValidationMessage] = useState('');
 
     const updateBoard = (row, col, value) =>{
         if(value < 0 || value > 9)
@@ -26,8 +27,16 @@ const SudokuSolver = () =>{
 
         let newBoard = cloneBoard();
 
-        newBoard[row][col] = value;
-        setBoard(newBoard);
+        if(isValidMove(row, col, value, newBoard)){
+            newBoard[row][col] = value;
+            setBoard(newBoard);
+            setValidationMessage('');
+        }
+        else{
+            newBoard[row][col] = 0;
+            setBoard(newBoard);
+            setValidationMessage(`Invalid move ${value} on cell [${row+1},${col+1}]`);
+        }
     }
 
     const solvePuzzle = () =>{
@@ -36,6 +45,8 @@ const SudokuSolver = () =>{
         newBoard = solveSudoku(0,0,newBoard);
 
         setBoard(newBoard);
+
+        setValidationMessage(`Invalid move ${value} on cell [${row+1},${col+1}]`);
     }
 
     const cloneBoard = () =>{
@@ -90,11 +101,17 @@ const SudokuSolver = () =>{
                     style={{width:'100%', padding: 20, margin: 0 }}
                     className="btn btn-info text-white"
                     type="button"
-                    id="ammortizationCalculate"
+                    id="button-solve-sudoku"
                     aria-expanded="false"
                     onClick={ () => solvePuzzle()}
                 > <h2>Solve</h2> </button>   
                 </p>
+            </div>
+        </div>
+        <div className="row pb-5 text-danger">
+            <div className="col-1"></div>
+            <div className="col-10">
+                <h2>{validationMessage}</h2>
             </div>
         </div>
 
