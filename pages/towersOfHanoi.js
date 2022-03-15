@@ -7,6 +7,7 @@ import ButtonsPanel from '../comps/towersOfHanoi/buttonsPanel';
 
 const TowersOfHanoi = () =>{
 
+    //TODO: change to use one state instead of multiple
     const [towers, setTowers] = useState({A:[6,5,4,3], B: [], C: []});
     const [moves, setMoves] = useState([]);
     const [movesHistory, setMovesHistory] = useState([]);

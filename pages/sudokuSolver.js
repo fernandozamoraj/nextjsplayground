@@ -2,6 +2,7 @@ import { useState } from 'react';
 import NumericInput from 'react-numeric-input';
 import { solveSudoku, isValidMove } from '../utils/services/sudokuSolverFunctions';
 import BackLink from '../comps/backLink';
+import ActionButton from '../comps/actionButton';
 
 const INITIAL_BOARD = 
 [ [0, 1, 0, 0, 2, 0, 0, 9, 0],  //1
@@ -18,9 +19,8 @@ const INITIAL_BOARD =
 
 const SudokuSolver = () =>{
 
-    const [board, setBoard] = useState(INITIAL_BOARD);
-    const [validationMessage, setValidationMessage] = useState('');
-
+    const [dashboard, setDashboard] = useState({board: INITIAL_BOARD, validationMessage: ""});
+    
     const updateBoard = (row, col, value) =>{
         if(value < 0 || value > 9)
             value = 0;
@@ -29,13 +29,11 @@ const SudokuSolver = () =>{
 
         if(isValidMove(row, col, value, newBoard)){
             newBoard[row][col] = value;
-            setBoard(newBoard);
-            setValidationMessage('');
+            setDashboard({board: newBoard, validationMessage:''});
         }
         else{
             newBoard[row][col] = 0;
-            setBoard(newBoard);
-            setValidationMessage(`Invalid move ${value} on cell [${row+1},${col+1}]`);
+            setDashboard({board: newBoard, validationMessage:`Invalid move ${value} on cell [${row+1},${col+1}]`});
         }
     }
 
@@ -44,15 +42,13 @@ const SudokuSolver = () =>{
         
         newBoard = solveSudoku(0,0,newBoard);
 
-        setBoard(newBoard);
-
-        setValidationMessage(`Invalid move ${value} on cell [${row+1},${col+1}]`);
+        setDashboard({board: newBoard, validationMessage:''});
     }
 
     const cloneBoard = () =>{
-        let newBoard = [...board];
+        let newBoard = [...dashboard.board];
         let i = 0;
-        for(let row of board){
+        for(let row of dashboard.board){
             newBoard[i] = [...row];
             i++;
         }
@@ -62,7 +58,7 @@ const SudokuSolver = () =>{
 
     let boardElements = [];
     for(let i=0; i<9;i++){
-        boardElements[i] = board[i].map( (x, j)=>{
+        boardElements[i] = dashboard.board[i].map( (x, j)=>{
             let padding = 0;
 
             if(((j+1)%3) == 0){
@@ -83,77 +79,52 @@ const SudokuSolver = () =>{
         });
     }
 
+    const getFullHorizontalRowPanel = (startingIndex) =>{
+
+        return (
+            <div className="row pb-4">
+                <div className="row">
+                    {boardElements[startingIndex]}
+                </div>
+                <div className="row">
+                    {boardElements[startingIndex+1]}
+                </div>
+                <div className="row">
+                    {boardElements[startingIndex+2]}
+                </div>
+            </div>
+        );
+    }
+
     return (
-    <div className="container bg-lighter text-secondary">
-        <BackLink/>
-        <div className="row pb-5">
-            <div className="col-1"></div>
-            <div className="col-8 jumbotron text-center">
-                <h2 text-primary>Sudoku solver </h2>
-                <p>Plug in the numbers that your puzzle has and click solve</p>
-                <p>
-                <button
-                    
-                    style={{width:'100%', padding: 20, margin: 0 }}
-                    className="btn btn-info text-white"
-                    type="button"
-                    id="button-solve-sudoku"
-                    aria-expanded="false"
-                    onClick={ () => solvePuzzle()}
-                > <h2>Solve</h2> </button>   
-                </p>
+        <div className="container bg-lighter text-secondary">
+            <BackLink/>
+            <div className="row pb-5">
+                <div className="col-1"></div>
+                <div className="col-8 jumbotron text-center">
+                    <h2 text-primary>Sudoku solver </h2>
+                    <p>Plug in the numbers and click solve</p>
+                    <ActionButton onClick={()=>solvePuzzle()} text="Solve" />
+                </div>
             </div>
-        </div>
-        <div className="row pb-5 text-danger">
-            <div className="col-1"></div>
-            <div className="col-10">
-                <h2>{validationMessage}</h2>
+            <div className="row pb-5 text-danger">
+                <div className="col-1"></div>
+                <div className="col-10">
+                    <h2>{dashboard.validationMessage}</h2>
+                </div>
             </div>
-        </div>
 
-        <div className="row pb-5 text-primary">
-            <div className="col-1"/>
-            <div className="col-10">
-                <div className="row gx-5 form-group">
-                    <div className="row pb-4">
-                        <div className="row">
-                            {boardElements[0]}
-                        </div>
-                        <div className="row">
-                            {boardElements[1]}
-                        </div>
-                        <div className="row">
-                            {boardElements[2]}
-                        </div>
-                    </div>
-
-                    <div className="row pb-4">
-                        <div className="row">
-                            {boardElements[3]}
-                        </div>
-                        <div className="row">
-                            {boardElements[4]}
-                        </div>
-                        <div className="row">
-                            {boardElements[5]}
-                        </div>
-                    </div>
-
-                    <div className="row">
-                        <div className="row">
-                            {boardElements[6]}
-                        </div>
-                        <div className="row">
-                            {boardElements[7]}
-                        </div>
-                        <div className="row">
-                            {boardElements[8]}
-                        </div>   
+            <div className="row pb-5 text-primary">
+                <div className="col-1"/>
+                <div className="col-10">
+                    <div className="row gx-5 form-group">
+                        {getFullHorizontalRowPanel(0)}
+                        {getFullHorizontalRowPanel(3)}
+                        {getFullHorizontalRowPanel(6)}
                     </div>
                 </div>
             </div>
-        </div>
-    </div>);
+        </div>);
 }
 
 export default SudokuSolver;
