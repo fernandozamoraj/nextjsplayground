@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import NumericInput from 'react-numeric-input';
-import Link from 'next/link'
+import ActionButton from '../comps/actionButton';
+import BackLink from '../comps/backLink';
 
 const AmmortizationCalculator = () =>{
 
@@ -73,15 +74,9 @@ const AmmortizationCalculator = () =>{
  
  return (
         <div>
-
-            <Link href="/">
-                <a>
-                 <h2>&larr; Back</h2>   
-                </a>
-            </Link>
-
             <div className="container">
-                <div className="row gx-5 form-group">
+                <BackLink/>
+                <div className="row gx-5 form-group  mt-1">
                     <div className="col-2">
                         <label htmlFor="amountInput" className="form-label">Loan Amount</label>
                     </div>
@@ -97,7 +92,7 @@ const AmmortizationCalculator = () =>{
                             />
                     </div>
                 </div>
-                <div className="row gx-5 form-group">
+                <div className="row gx-5 form-group  mt-1">
                     <div className="col-2">
                         <label htmlFor="interestRateInput" className="form-label">Interest Rate</label>
                     </div>
@@ -114,7 +109,7 @@ const AmmortizationCalculator = () =>{
                         placeholder="3.5" />
                     </div>
                 </div>
-                <div className="row gx-5 form-group">
+                <div className="row gx-5 form-group  mt-1">
                     <div className="col-2">
                         <label htmlFor="termLengthInMonthsInput" className="form-label">Term Length</label>
                     </div>
@@ -132,51 +127,43 @@ const AmmortizationCalculator = () =>{
 
                     </div>
                 </div>    
-                <div className="row">
-                    <div className="col-6">
-                        <button
-                            className="btn btn-primary"
-                            type="button"
-                            id="ammortizationCalculate"
-                            aria-expanded="false"
-                            onClick={ () => handleCalculate()}
-                        > Compute </button>   
+                <div className="row mt-2">
+                    <div className="col-sm-8 col-offset-1">
+                        <ActionButton onClick={()=>handleCalculate()} text="Compute"/>
                     </div>
                 </div>
-
-            
-
+                
             {
                 ammortizationTable.length > 0 && 
                 (
                     <>
                     <h2>Summary</h2>
-                    <ul className="list-group">
-                        <li className="list-group-item">Payment: {`${getFormattedCurrency(payment)}`}</li>
-                        <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(totalInterest)}`}</li>
-                        <li className="list-group-item">Total: {`${getFormattedCurrency(totalOverall)}`}   </li>
-                    </ul>
-                  <h2>Ammortization Table</h2>  
-                  <table className="table table-striped table-sm">
-                    <thead className="thead-dark">
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Principal</th>
-                        <th scope="col">Accumulated Interest</th>
-                        <th scope="col">Accumulated Total</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {ammortizationTable.map( (x, i) =>(
-                        <tr key={`ammort-row-${i}`}>
-                            <th>{`${i+1}`}</th>
-                            <td>{`${getFormattedCurrency(x.principal)}`}</td>
-                            <td>{`${getFormattedCurrency(x.totalInterest)}`}</td>  
-                            <td>{`${getFormattedCurrency(x.total)}`}</td>              
+                        <ul className="list-group">
+                            <li className="list-group-item">Payment: {`${getFormattedCurrency(payment)}`}</li>
+                            <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(totalInterest)}`}</li>
+                            <li className="list-group-item">Total: {`${getFormattedCurrency(totalOverall)}`}   </li>
+                        </ul>
+                    <h2>Ammortization Table</h2>  
+                    <table className="table table-striped table-sm">
+                        <thead className="thead-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Principal</th>
+                            <th scope="col">Accumulated Interest</th>
+                            <th scope="col">Accumulated Total</th>
                         </tr>
-                    ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        {ammortizationTable.map( (x, i) =>(
+                            <tr key={`ammort-row-${i}`}>
+                                <th>{`${i+1}`}</th>
+                                <td>{`${getFormattedCurrency(x.principal)}`}</td>
+                                <td>{`${getFormattedCurrency(x.totalInterest)}`}</td>  
+                                <td>{`${getFormattedCurrency(x.total)}`}</td>              
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
                 </>)
             }
         </div>

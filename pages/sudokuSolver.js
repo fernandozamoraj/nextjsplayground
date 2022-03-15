@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import NumericInput from 'react-numeric-input';
-import Link from 'next/link';
 import { solveSudoku, isValidMove } from '../utils/services/sudokuSolverFunctions';
+import BackLink from '../comps/backLink';
 
 const INITIAL_BOARD = 
 [ [0, 1, 0, 0, 2, 0, 0, 9, 0],  //1
@@ -85,11 +85,7 @@ const SudokuSolver = () =>{
 
     return (
     <div className="container bg-lighter text-secondary">
-        <Link href="/">
-            <a>
-                <h2> &larr; Back</h2>   
-            </a>
-        </Link>
+        <BackLink/>
         <div className="row pb-5">
             <div className="col-1"></div>
             <div className="col-8 jumbotron text-center">
@@ -158,7 +154,6 @@ const SudokuSolver = () =>{
             </div>
         </div>
     </div>);
-
 }
 
 export default SudokuSolver;

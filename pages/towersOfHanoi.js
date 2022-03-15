@@ -1,115 +1,77 @@
 import { useState } from 'react';
-import Link from 'next/link';
-import { solveTowersOfHanoi } from '../utils/services/towersOfHanoiAlgorithm'
-
+import { solveTowersOfHanoi } from '../utils/services/towersOfHanoiAlgorithm';
+import BackLink from '../comps/backLink';
+import DiscStack from '../comps/towersOfHanoi/discStack';
+import MovesPanel from '../comps/towersOfHanoi/movesPanel';
+import ButtonsPanel from '../comps/towersOfHanoi/buttonsPanel';
 
 const TowersOfHanoi = () =>{
 
     const [towers, setTowers] = useState({A:[6,5,4,3], B: [], C: []});
     const [moves, setMoves] = useState([]);
+    const [movesHistory, setMovesHistory] = useState([]);
 
     const handleSolution = () =>{
         let temporaryMoves = [];
 
         solveTowersOfHanoi(4, temporaryMoves);
         setMoves([...temporaryMoves]);
+        setMovesHistory([]);
         setTowers({A:[6,5,4,3], B: [], C: []});
     };
 
+    const unsolved = () =>{
+        return moves.length === 0 && movesHistory.length == 0;
+    }
+
     const handleNextMove = () =>{
+        if(unsolved()){
+            handleSolution();
+        }
+
         if(moves.length > 0){
             let tempMoves = [...moves];
+            let tempMovesHistory = [...movesHistory];
             let nextMove = tempMoves.shift();
             let tempTowers = {...towers};
             let disk = tempTowers[nextMove.from].pop();
             tempTowers[nextMove.to].push(disk);
+            tempMovesHistory.unshift({...nextMove});
     
             setTowers(tempTowers);
             setMoves(tempMoves);
+            setMovesHistory(tempMovesHistory);
         }
     };
 
-    const getDiskStack = (col, disks, towerHeight) =>{
-
-        let newDisks = [];
-
-        while(disks.length > 0){
-            newDisks.push(disks.pop());
+    const handlePreviousMove = () =>{
+        if(unsolved()){
+            handleSolution();
         }
 
-        while(newDisks.length < towerHeight){
-            newDisks.unshift(-1);
+        if(movesHistory.length > 0){
+            let tempMoves = [...moves];
+            let tempMovesHistory = [...movesHistory];
+            let nextMove = tempMovesHistory.shift();
+            let tempTowers = {...towers};
+            let disk = tempTowers[nextMove.to].pop();
+            tempTowers[nextMove.from].push(disk);
+            tempMoves.unshift({...nextMove});
+    
+            setTowers(tempTowers);
+            setMoves(tempMoves);
+            setMovesHistory(tempMovesHistory);
         }
-        const colorClasses = ['bg-primary', 'bg-danger', 'bg-success', 'bg-warning', 'bg-info'];
-        return (
-            newDisks.map( (x, index) =>{
-                const colorClass = x !== -1 ? colorClasses[x%5] : "bg-secondary";
-                const colSize = x !== -1 ? x*2 : 2;
-                const colOffset = x !== -1 ? (12 - (x*2))/2 : 5;
-                return (
-                 <div className="row" key={`${col}-disk-${index}`}>
-                    <div className={`col-sm-${colSize} offset-sm-${colOffset} ${colorClass}`}><span>&nbsp;</span></div>    
-                 </div>);    
-              })
-        );
-    }
+    };
 
     return(
     <div className="container bg-lighter text-secondary">
-        <Link href="/">
-            <a>
-                <h2> &larr; Back</h2>   
-            </a>
-        </Link>
+        <BackLink/>
         <div className="row pb-5">
-            <div className="col-1"></div>
-            <div className="col-8 jumbotron text-center">
-                <h2 className="text-primary">Towers of Hanoi </h2>
-                <p>Solve the towers</p>
-                <p>
-                <button
-                    style={{width:'100%', padding: 20, margin: 0 }}
-                    className="btn btn-info text-white"
-                    type="button"
-                    id="ammortizationCalculate"
-                    aria-expanded="false"
-                    onClick={ handleSolution }
-                > <h2>Solve</h2> </button>   
-                </p>
-                <p>
-                <button
-                    
-                    style={{width:'100%', padding: 20, margin: 0 }}
-                    className="btn btn-info text-white"
-                    type="button"
-                    id="ammortizationCalculate"
-                    aria-expanded="false"
-                    onClick={ handleNextMove }
-                > <h2>Next</h2> </button>   
-                </p>
-
-            </div>
-            <div className="container">
-                <div className="row">
-                    <div className="col-sm">
-                        {getDiskStack('A', [...towers.A], 7)}
-                    </div>
-                    <div className="col-sm">
-                        {getDiskStack('B', [...towers.B], 7)}
-                    </div>
-                    <div className="col-sm">
-                        {getDiskStack('C', [...towers.C], 7)}
-                    </div>
-                </div>
-            </div>
-
-                <ul>
-                    {moves.map( (move, index) =>{
-                        return (
-                            <li key={`move-${index}-${move.from}-${move.to}`}>{`${move.from}`}&rarr;{`${move.to}`}</li>
-                        );
-                    })}
-                </ul>
+            <div className="col-sm-1"></div>
+            <ButtonsPanel onHandleNextMove={handleNextMove} onHandlePreviousMove={handlePreviousMove} onHandleSolution={handleSolution} />
+            <DiscStack towers={towers}/>
+            <MovesPanel moves={moves} movesHistory={movesHistory}/>
         </div>
     </div>
     );
