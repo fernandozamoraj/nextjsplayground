@@ -96,7 +96,7 @@ const AmmortizationCalculator = () =>{
                     <div className="col-2">
                         <label htmlFor="interestRateInput" className="form-label">Interest Rate</label>
                     </div>
-                    <div className="col-3">
+                    <div className="col-3 text-end">
                         <NumericInput 
                         style={false} 
                         step={0.01} 
@@ -113,7 +113,7 @@ const AmmortizationCalculator = () =>{
                     <div className="col-2">
                         <label htmlFor="termLengthInMonthsInput" className="form-label">Term Length</label>
                     </div>
-                    <div className="col-3">
+                    <div className="col-3 text-end">
                         <NumericInput 
                         style={false}  
                         step={1} 
@@ -127,7 +127,7 @@ const AmmortizationCalculator = () =>{
 
                     </div>
                 </div>    
-                <div className="row mt-2">
+                <div className="row mt-4">
                     <div className="col-sm-8 col-offset-1">
                         <ActionButton onClick={()=>handleCalculate()} text="Compute"/>
                     </div>
@@ -136,35 +136,37 @@ const AmmortizationCalculator = () =>{
             {
                 ammortizationTable.length > 0 && 
                 (
-                    <>
-                    <h2>Summary</h2>
-                        <ul className="list-group">
-                            <li className="list-group-item">Payment: {`${getFormattedCurrency(payment)}`}</li>
-                            <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(totalInterest)}`}</li>
-                            <li className="list-group-item">Total: {`${getFormattedCurrency(totalOverall)}`}   </li>
-                        </ul>
-                    <h2>Ammortization Table</h2>  
-                    <table className="table table-striped table-sm">
-                        <thead className="thead-dark">
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Principal</th>
-                            <th scope="col">Accumulated Interest</th>
-                            <th scope="col">Accumulated Total</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {ammortizationTable.map( (x, i) =>(
-                            <tr key={`ammort-row-${i}`}>
-                                <th>{`${i+1}`}</th>
-                                <td>{`${getFormattedCurrency(x.principal)}`}</td>
-                                <td>{`${getFormattedCurrency(x.totalInterest)}`}</td>  
-                                <td>{`${getFormattedCurrency(x.total)}`}</td>              
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </>)
+                    <div className="row mt-2">
+                        <div className="col-sm-8 col-offset-1">
+                            <h2>Summary</h2>
+                                <ul className="list-group">
+                                    <li className="list-group-item">Payment: {`${getFormattedCurrency(payment)}`}</li>
+                                    <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(totalInterest)}`}</li>
+                                    <li className="list-group-item">Total: {`${getFormattedCurrency(totalOverall)}`}   </li>
+                                </ul>
+                            <h2>Ammortization Table</h2>  
+                            <table className="table table-striped table-sm">
+                                <thead className="thead-dark">
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Principal</th>
+                                    <th scope="col">Accumulated Interest</th>
+                                    <th scope="col">Accumulated Total</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                    {ammortizationTable.map( (x, i) =>(
+                                        <tr key={`ammort-row-${i}`}>
+                                            <th>{`${i+1}`}</th>
+                                            <td>{`${getFormattedCurrency(x.principal)}`}</td>
+                                            <td>{`${getFormattedCurrency(x.totalInterest)}`}</td>  
+                                            <td>{`${getFormattedCurrency(x.total)}`}</td>              
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>)
             }
         </div>
         </div>
