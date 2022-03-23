@@ -62,7 +62,7 @@ const SudokuSolver = () =>{
         boardElements[i] = dashboard.board[i].map( (x, j)=>{
 
 
-            return (<Cell row={i} column={j} val={x} updateBoard={updateBoard}/>)
+            return (<Cell key={`sudku-cell-row-${i}-col-${j}`} row={i} column={j} val={x} updateBoard={updateBoard}/>)
         });
     }
 
