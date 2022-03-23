@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import NumericInput from 'react-numeric-input';
 import { solveSudoku, isValidMove } from '../utils/services/sudokuSolverFunctions';
 import BackLink from '../comps/backLink';
 import ActionButton from '../comps/actionButton';
+import Cell from '../comps/sudoku/cell';
 
 const INITIAL_BOARD = 
 [ [0, 1, 0, 0, 2, 0, 0, 9, 0],  //1
@@ -20,6 +20,7 @@ const INITIAL_BOARD =
 const SudokuSolver = () =>{
 
     const [dashboard, setDashboard] = useState({board: INITIAL_BOARD, validationMessage: ""});
+
     
     const updateBoard = (row, col, value) =>{
         if(value < 0 || value > 9)
@@ -59,39 +60,28 @@ const SudokuSolver = () =>{
     let boardElements = [];
     for(let i=0; i<9;i++){
         boardElements[i] = dashboard.board[i].map( (x, j)=>{
-            let padding = 0;
 
-            if(((j+1)%3) == 0){
-                padding = 25;
-            }
-            return(<div key={`board-element-${i}-${j}`} className={`col-1`} style={{width: 100, padding: 0, marginRight: padding}}>
-                    <NumericInput 
-                        style={false} 
-                        type="text" 
-                        className="form-control" 
-                        id={`board-${i}-${j}`} 
-                        key={`board-${i}-${j}`} 
-                        placeholder="0" 
-                        value={x}
-                        onChange={ value => updateBoard(i, j, value)}
-                        />
-                </div>)
+
+            return (<Cell row={i} column={j} val={x} updateBoard={updateBoard}/>)
         });
     }
 
     const getFullHorizontalRowPanel = (startingIndex) =>{
 
         return (
-            <div className="row pb-4">
+            <div className="row pb-4 justify-content-center">
+
+               <div className="col-sm-12">
                 <div className="row">
-                    {boardElements[startingIndex]}
-                </div>
-                <div className="row">
-                    {boardElements[startingIndex+1]}
-                </div>
-                <div className="row">
-                    {boardElements[startingIndex+2]}
-                </div>
+                        {boardElements[startingIndex]}
+                    </div>
+                    <div className="row">
+                        {boardElements[startingIndex+1]}
+                    </div>
+                    <div className="row">
+                        {boardElements[startingIndex+2]}
+                    </div>
+               </div>
             </div>
         );
     }
@@ -99,6 +89,7 @@ const SudokuSolver = () =>{
     return (
         <div className="container bg-lighter text-secondary">
             <BackLink/>
+
             <div className="row pb-5">
                 <div className="col-1"></div>
                 <div className="col-8 jumbotron text-center">
