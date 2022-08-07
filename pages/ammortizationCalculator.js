@@ -88,10 +88,10 @@ const AmmortizationCalculator = () =>{
             <div className="container">
                 <BackLink/>
                 <div className="row gx-5 form-group  mt-1">
-                    <div className="col-2">
+                    <div className="col-3">
                         <label htmlFor="amountInput" className="form-label">Loan Amount</label>
                     </div>
-                    <div className="col-3">
+                    <div className="col-6">
                         <NumericInput 
                             style={false} 
                             type="text" 
@@ -104,10 +104,10 @@ const AmmortizationCalculator = () =>{
                     </div>
                 </div>
                 <div className="row gx-5 form-group  mt-1">
-                    <div className="col-2">
+                    <div className="col-3">
                         <label htmlFor="interestRateInput" className="form-label">Interest Rate</label>
                     </div>
-                    <div className="col-3 text-end">
+                    <div className="col-6 text-end">
                         <NumericInput 
                         style={false} 
                         step={0.01} 
@@ -121,10 +121,10 @@ const AmmortizationCalculator = () =>{
                     </div>
                 </div>
                 <div className="row gx-5 form-group  mt-1">
-                    <div className="col-2">
+                    <div className="col-3">
                         <label htmlFor="termLengthInMonthsInput" className="form-label">Term Length</label>
                     </div>
-                    <div className="col-3 text-end">
+                    <div className="col-6 text-end">
                         <NumericInput 
                         style={false}  
                         step={1} 
@@ -138,8 +138,8 @@ const AmmortizationCalculator = () =>{
 
                     </div>
                 </div>    
-                <div className="row mt-4">
-                    <div className="col-sm-8 col-offset-1">
+                <div className="row mt-2">
+                    <div className="col-sm-9 col-offset-1">
                         <ActionButton onClick={()=>handleCalculate()} text="Compute"/>
                     </div>
                 </div>
