@@ -67,6 +67,8 @@ const AmmortizationCalculator = () =>{
 
             payments = [...payments, 
                 {principal: principal + currentInterest + monthlyPayment,
+                 principalOnly: monthlyPayment - currentInterest,
+                 interestOnly: currentInterest,
                  totalInterest: totalInterest,
                  total: total}];
             
@@ -161,6 +163,8 @@ const AmmortizationCalculator = () =>{
                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">Principal</th>
+                                    <th scope="col">Principal Only</th>
+                                    <th scope="col">Interest Only</th>
                                     <th scope="col">Accumulated Interest</th>
                                     <th scope="col">Accumulated Total</th>
                                 </tr>
@@ -170,6 +174,8 @@ const AmmortizationCalculator = () =>{
                                         <tr key={`ammort-row-${i}`}>
                                             <th>{`${i+1}`}</th>
                                             <td>{`${getFormattedCurrency(x.principal)}`}</td>
+                                            <td>{`${getFormattedCurrency(x.principalOnly)}`}</td>
+                                            <td>{`${getFormattedCurrency(x.interestOnly)}`}</td>
                                             <td>{`${getFormattedCurrency(x.totalInterest)}`}</td>  
                                             <td>{`${getFormattedCurrency(x.total)}`}</td>              
                                         </tr>
