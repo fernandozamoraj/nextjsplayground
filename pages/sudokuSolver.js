@@ -93,7 +93,7 @@ const SudokuSolver = () =>{
             <div className="row pb-5">
                 <div className="col-1"></div>
                 <div className="col-8 jumbotron text-center">
-                    <h2 text-primary>Sudoku solver </h2>
+                    <h2 className="text-primary">Sudoku solver </h2>
                     <p>Plug in the numbers and click solve</p>
                     <ActionButton onClick={()=>solvePuzzle()} text="Solve" />
                 </div>
