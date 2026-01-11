@@ -1,16 +1,77 @@
+:root {
+  --primary-red: #dc2626;
+  --primary-orange: #f97316;
+  --light-orange: #fed7aa;
+  --dark-red: #991b1b;
+  --bg-light: #fff5f5;
+  --bg-white: #ffffff;
+  --text-dark: #1f2937;
+  --text-light: #6b7280;
+  --border-light: #fecaca;
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background-color: var(--bg-light);
+  color: #1f2937;
 }
 
 a {
-  color: inherit;
+  color: #1f2937;
   text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 500;
+}
+
+a:hover {
+  color: var(--primary-red);
 }
 
 * {
   box-sizing: border-box;
+}
+
+.bg-lighter {
+  background-color: var(--bg-light);
+}
+
+.btn-primary {
+  background-color: var(--primary-red) !important;
+  border-color: var(--primary-red) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--dark-red) !important;
+  border-color: var(--dark-red) !important;
+}
+
+.btn-info {
+  background-color: var(--primary-orange) !important;
+  border-color: var(--primary-orange) !important;
+}
+
+.btn-info:hover {
+  background-color: #ea580c !important;
+  border-color: #ea580c !important;
+}
+
+.card {
+  border: 2px solid var(--border-light) !important;
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(249, 115, 22, 0.2) !important;
+}
+
+.alert-info {
+  background-color: var(--light-orange) !important;
+  border-color: var(--primary-orange) !important;
+  color: var(--dark-red) !important;
 }

@@ -1,0 +1,39 @@
+.actionButton {
+    width: 100%;
+    padding: 20px;
+    margin: 0;
+    background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.25);
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.actionButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(249, 115, 22, 0.35);
+}
+
+.backLink {
+    color: #1f2937;
+    font-size: 1.25rem;
+    font-weight: bold;
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    background-color: #fff5f5;
+    border: 2px solid #fecaca;
+}
+
+.backLink:hover {
+    color: #ffffff;
+    background-color: #dc2626;
+    border-color: #dc2626;
+}
+
+.backLink h2 {
+    margin: 0;
+}

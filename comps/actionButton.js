@@ -1,15 +1,12 @@
+import styles from '../styles/Button.module.css';
 
 const ActionButton = ({text, onClick, leftArrow, rightArrow}) =>{
 
     return (
         <p>
             <button
-                
-                style={{width:'100%', padding: 20, margin: 0 }}
-                className="btn btn-info text-white"
+                className={styles.actionButton}
                 type="button"
-                id="btn-sudoku-previous"
-                aria-expanded="false"
                 onClick={ (event) => onClick(event) }
             > 
                 

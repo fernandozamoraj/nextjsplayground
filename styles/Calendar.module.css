@@ -1,0 +1,113 @@
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.yearNav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.yearTitle {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1f2937;
+    padding: 0 20px;
+    text-shadow: 2px 2px 4px rgba(220, 38, 38, 0.1);
+}
+
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.monthContainer {
+    background-color: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1);
+    border: 2px solid #fecaca;
+    transition: transform 0.2s ease;
+}
+
+.monthContainer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(249, 115, 22, 0.15);
+}
+
+.monthName {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #1f2937;
+    background-color: #fff5f5;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.calendarTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calendarTable th {
+    padding: 8px;
+    font-size: 12px;
+    color: #1f2937;
+    font-weight: bold;
+    background-color: #fff5f5;
+}
+
+.calendarTable td {
+    padding: 8px;
+    text-align: center;
+    font-size: 14px;
+    border: 1px solid #fecaca;
+    transition: background-color 0.2s ease;
+}
+
+.calendarTable td:hover:not(.payday):not(.paydayThird) {
+    background-color: #fff5f5;
+}
+
+.otherMonth {
+    color: #d1d5db;
+}
+
+.currentMonth {
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.payday {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    color: white;
+    font-weight: bold;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.paydayThird {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    font-weight: bold;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1200px) {
+    .calendarGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .calendarGrid {
+        grid-template-columns: 1fr;
+    }
+}

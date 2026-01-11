@@ -1,5 +1,7 @@
 .container {
   padding: 0 2rem;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffedd5 100%);
+  min-height: 100vh;
 }
 
 .main {
@@ -16,9 +18,10 @@
   display: flex;
   flex: 1;
   padding: 2rem 0;
-  border-top: 1px solid #eaeaea;
+  border-top: 2px solid #fecaca;
   justify-content: center;
   align-items: center;
+  background-color: #ffffff;
 }
 
 .footer a {
@@ -29,13 +32,14 @@
 }
 
 .title a {
-  color: #0070f3;
+  color: #1f2937;
   text-decoration: none;
 }
 
 .title a:hover,
 .title a:focus,
 .title a:active {
+  color: var(--primary-red);
   text-decoration: underline;
 }
 
@@ -43,6 +47,8 @@
   margin: 0;
   line-height: 1.15;
   font-size: 4rem;
+  color: #1f2937;
+  text-shadow: 2px 2px 4px rgba(220, 38, 38, 0.1);
 }
 
 .title,
@@ -54,6 +60,7 @@
   margin: 4rem 0;
   line-height: 1.5;
   font-size: 1.5rem;
+  color: #1f2937;
 }
 
 .code {
@@ -66,41 +73,51 @@
 }
 
 .grid {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 800px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1000px;
+  width: 100%;
+  margin-top: 3rem;
 }
 
 .card {
-  margin: 1rem;
+  margin: 0;
   padding: 1.5rem;
   text-align: left;
-  color: inherit;
+  color: #1f2937;
   text-decoration: none;
-  border: 1px solid #eaeaea;
-  border-radius: 10px;
-  transition: color 0.15s ease, border-color 0.15s ease;
-  max-width: 300px;
+  border: 2px solid #fecaca;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 200px;
 }
 
 .card:hover,
 .card:focus,
 .card:active {
-  color: #0070f3;
-  border-color: #0070f3;
+  color: #1f2937;
+  border-color: #f97316;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(249, 115, 22, 0.25);
 }
 
 .card h2 {
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
 .card p {
   margin: 0;
   font-size: 1.25rem;
   line-height: 1.5;
+  flex-grow: 1;
 }
 
 .logo {
@@ -108,9 +125,18 @@
   margin-left: 0.5rem;
 }
 
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
   .grid {
-    width: 100%;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+  
+  .card {
+    min-height: 150px;
   }
 }

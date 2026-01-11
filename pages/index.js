@@ -24,6 +24,12 @@ export default function Home() {
         </p>
 
         <div className={styles.grid}>
+          <Link href="/calendar">
+            <a className={styles.card}>
+            <h2>Paydate Calendar&rarr;</h2>
+            <p>A full year calendar with highlighted paydays</p>
+          </a>
+          </Link>
           <Link href="/ammortizationCalculator">
             <a className={styles.card}>
             <h2>Ammortization Calculator &rarr;</h2>
@@ -38,17 +44,12 @@ export default function Home() {
           </a>
           </Link>
 
-          <div className="card" style={{width: '18rem;'}}>
-            <img className="card-img-top" src="/images/TowersThumbnailSmall.PNG" alt="towers of hanoi image"/>
-            <div className="card-body">
-              <h5 className="card-title">Visual Towers of Hanoi</h5>
-              <p className="card-text">Towers of hanoi</p>
-              
-              <Link href="/towersOfHanoi">
-                <a href="#" className="btn btn-primary">Go...</a>
-              </Link>
-            </div>
-          </div>
+          <Link href="/towersOfHanoi">
+            <a className={styles.card}>
+            <h2>Visual Towers of Hanoi &rarr;</h2>
+            <p>Step through the classic Tower of Hanoi puzzle visualization</p>
+          </a>
+          </Link>
 
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
