@@ -2,17 +2,18 @@
     width: 100%;
     padding: 20px;
     margin: 0;
-    background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+    background-color: #ef4444;
     border: none;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.25);
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);
     transition: all 0.3s ease;
     color: white;
 }
 
 .actionButton:hover {
+    background-color: #dc2626;
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(249, 115, 22, 0.35);
+    box-shadow: 0 6px 12px rgba(239, 68, 68, 0.35);
 }
 
 .backLink {
@@ -30,8 +31,8 @@
 
 .backLink:hover {
     color: #ffffff;
-    background-color: #dc2626;
-    border-color: #dc2626;
+    background-color: #ef4444;
+    border-color: #ef4444;
 }
 
 .backLink h2 {

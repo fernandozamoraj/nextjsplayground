@@ -16,7 +16,7 @@
     font-weight: bold;
     color: #1f2937;
     padding: 0 20px;
-    text-shadow: 2px 2px 4px rgba(220, 38, 38, 0.1);
+    text-shadow: 2px 2px 4px rgba(239, 68, 68, 0.1);
 }
 
 .calendarGrid {
@@ -31,14 +31,14 @@
     background-color: white;
     border-radius: 12px;
     padding: 15px;
-    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1);
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1);
     border: 2px solid #fecaca;
     transition: transform 0.2s ease;
 }
 
 .monthContainer:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(249, 115, 22, 0.15);
+    box-shadow: 0 6px 12px rgba(251, 146, 60, 0.15);
 }
 
 .monthName {
@@ -87,17 +87,15 @@
 }
 
 .payday {
-    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    background-color: #ef4444;
     color: white;
     font-weight: bold;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .paydayThird {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    background-color: #fb923c;
     color: white;
     font-weight: bold;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1200px) {

@@ -4,12 +4,12 @@ import ActionButton from '../actionButton';
 const ButtonsPanel = ({onHandleSolution, onHandlePreviousMove, onHandleNextMove}) =>{
 
     return (
-        <div className="col-sm-8 jumbotron text-center">
+        <div className="col-sm-8 jumbotron text-center mb-5">
             <h2 className="text-primary">Towers of Hanoi</h2>
             <p>Solve the towers</p>
             <p>An example of undo and redo</p>
             
-            <p>
+            <p className="mb-4">
                 <ActionButton onClick={onHandleSolution} text="Solve" /> 
             </p>
         

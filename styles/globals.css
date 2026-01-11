@@ -1,8 +1,8 @@
 :root {
-  --primary-red: #dc2626;
-  --primary-orange: #f97316;
+  --primary-red: #ef4444;
+  --primary-orange: #fb923c;
   --light-orange: #fed7aa;
-  --dark-red: #991b1b;
+  --dark-red: #dc2626;
   --bg-light: #fff5f5;
   --bg-white: #ffffff;
   --text-dark: #1f2937;
@@ -55,19 +55,19 @@ a:hover {
 }
 
 .btn-info:hover {
-  background-color: #ea580c !important;
-  border-color: #ea580c !important;
+  background-color: #f97316 !important;
+  border-color: #f97316 !important;
 }
 
 .card {
   border: 2px solid var(--border-light) !important;
-  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1) !important;
+  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 12px rgba(249, 115, 22, 0.2) !important;
+  box-shadow: 0 8px 12px rgba(251, 146, 60, 0.2) !important;
 }
 
 .alert-info {
