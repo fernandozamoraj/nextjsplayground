@@ -14,13 +14,13 @@ export default function Home() {
 
       <main className={styles.main}>
         <div className="mb-4" style={{width: '75%', maxWidth: '75%', margin: '0 auto'}}>
-          <img src="/images/homepage.png" alt="Fernando's NextJS Playground" style={{width: '30%', height: 'auto', display: 'block', margin: '0 auto'}} />
+          <img src="/images/homepage.png" alt="Fernando's NextJS Playground" style={{width: '50%', height: 'auto', display: 'block', margin: '0 auto'}} />
         </div>
         <p>
           All code available at <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">https://github.com/fernandozamoraj/nextjsplayground</a>
         </p>
-        <p className="bg-warning">
-              This content requires a large (PC) screen for the best experience
+        <p className="bg-warning d-block d-md-none">
+              This content is best viewed in desktop mode due to the amount of data displayed in some of the pages. Please switch to a desktop or laptop for the best experience.
         </p>
 
         <div className={styles.grid}>
