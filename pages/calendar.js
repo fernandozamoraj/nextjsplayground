@@ -13,11 +13,18 @@ const MONTHS = [
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const Calendar = () => {
-    const [currentYear, setCurrentYear] = useState(2026);
+    //get current year as variable and set that to the current year
+    const currentYearValue = new Date().getFullYear();
+    //get first friday of the year as default payday
+    const firstFriday = new Date(currentYearValue, 0, 1);
+    while (firstFriday.getDay() !== 5) {
+        firstFriday.setDate(firstFriday.getDate() + 1);
+    }
+    const [currentYear, setCurrentYear] = useState(currentYearValue);
     const [payConfig, setPayConfig] = useState({
         month: 0,  // January (0-indexed)
-        day: 9,
-        year: 2026,
+        day: firstFriday.getDate(), //set to first friday
+        year: currentYearValue,
         payPeriodDays: 14
     });
 

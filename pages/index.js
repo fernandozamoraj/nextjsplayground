@@ -51,6 +51,13 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/investmentCalculator">
+            <a className={styles.card}>
+            <h2>Investment Calculator &rarr;</h2>
+            <p>Calculate investment growth with monthly contributions and compounding</p>
+          </a>
+          </Link>
+
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}
