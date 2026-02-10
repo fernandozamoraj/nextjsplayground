@@ -105,7 +105,7 @@ const InvestmentCalculator = () => {
 
                 <div className="row gx-5 form-group mt-3">
                     <div className="col-3">
-                        <label htmlFor="monthlyGrowthInput" className="form-label">Monthly Growth %</label>
+                        <label htmlFor="monthlyGrowthInput" className="form-label">Annual Monthly Increase %</label>
                     </div>
                     <div className="col-6">
                         <NumericInput
@@ -124,7 +124,7 @@ const InvestmentCalculator = () => {
 
                 <div className="row gx-5 form-group mt-3">
                     <div className="col-3">
-                        <label htmlFor="timeInMonthsInput" className="form-label">Time in Months</label>
+                        <label htmlFor="timeInMonthsInput" className="form-label">Investment Period (Months)</label>
                     </div>
                     <div className="col-6">
                         <NumericInput
@@ -153,7 +153,7 @@ const InvestmentCalculator = () => {
                             <div className="col-sm-10 col-offset-1">
                                 <h2>Summary</h2>
                                 <ul className="list-group mb-4">
-                                    <li className="list-group-item">Final Balance: {getFormattedCurrency(calculatorState.finalBalance)}</li>
+                                    <li className="list-group-item">Future Value: {getFormattedCurrency(calculatorState.finalBalance)}</li>
                                     <li className="list-group-item">Total Contributions: {getFormattedCurrency(calculatorState.totalContributions)}</li>
                                     <li className="list-group-item">Total Interest Earned: {getFormattedCurrency(calculatorState.totalInterest)}</li>
                                 </ul>

@@ -13,9 +13,9 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Fernando&apos;s NextJS Playground
-        </h1>
+        <div className="mb-4" style={{width: '75%', maxWidth: '75%', margin: '0 auto'}}>
+          <img src="/images/homepage.png" alt="Fernando's NextJS Playground" style={{width: '30%', height: 'auto', display: 'block', margin: '0 auto'}} />
+        </div>
         <p>
           All code available at <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">https://github.com/fernandozamoraj/nextjsplayground</a>
         </p>
