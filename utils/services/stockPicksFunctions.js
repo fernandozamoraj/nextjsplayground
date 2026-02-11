@@ -36,7 +36,9 @@ const generateMockData = (symbol) => {
             threeMonthLow: mockData.low3m,
             twelveMonthHigh: mockData.high12m,
             twelveMonthLow: mockData.low12m,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            isMock: true,
+            dataSource: 'mock'
         };
     }
     
@@ -50,7 +52,9 @@ const generateMockData = (symbol) => {
         threeMonthLow: basePrice * 0.85,
         twelveMonthHigh: basePrice * 1.35,
         twelveMonthLow: basePrice * 0.65,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        isMock: true,
+        dataSource: 'mock'
     };
 };
 
@@ -82,7 +86,11 @@ export const fetchStockData = async (symbol) => {
         }
         
         const data = await response.json();
-        return data;
+        return {
+            ...data,
+            isMock: false,
+            dataSource: 'live'
+        };
         
     } catch (error) {
         console.log('Error fetching stock data - using mock data:', error.message);

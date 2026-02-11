@@ -61,6 +61,16 @@ const StockPicks = () => {
         return new Date(isoString).toLocaleString();
     };
 
+    const getSourceLabel = (stock) => {
+        if (stock.isMock === true) {
+            return 'Mock';
+        }
+        if (stock.isMock === false) {
+            return 'Live';
+        }
+        return 'Unknown';
+    };
+
     return (
         <div>
             <div className="container">
@@ -75,7 +85,7 @@ const StockPicks = () => {
                         <li>Restart the dev server</li>
                     </ol>
                     Get your free API key at <a href="https://finnhub.io" target="_blank" rel="noreferrer">finnhub.io</a> (60 requests/minute free tier).
-                    Currently using mock data for demo.
+                    Each saved pick shows whether the data is <strong>Live</strong> or <strong>Mock</strong>.
                 </div>
 
                 <div className="row gx-5 form-group mt-4">
@@ -131,6 +141,7 @@ const StockPicks = () => {
                                             <th scope="col">12M High</th>
                                             <th scope="col">12M Low</th>
                                             <th scope="col">Last Updated</th>
+                                            <th scope="col">Source</th>
                                             <th scope="col">Action</th>
                                         </tr>
                                     </thead>
@@ -145,6 +156,11 @@ const StockPicks = () => {
                                                 <td>{getFormattedCurrency(stock.twelveMonthHigh)}</td>
                                                 <td>{getFormattedCurrency(stock.twelveMonthLow)}</td>
                                                 <td>{getFormattedDate(stock.lastUpdated)}</td>
+                                                <td>
+                                                    <span className={`badge ${getSourceLabel(stock) === 'Live' ? 'bg-success' : getSourceLabel(stock) === 'Mock' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                                                        {getSourceLabel(stock)}
+                                                    </span>
+                                                </td>
                                                 <td>
                                                     <button 
                                                         className="btn btn-sm btn-danger"
