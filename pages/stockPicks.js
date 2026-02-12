@@ -76,17 +76,6 @@ const StockPicks = () => {
             <div className="container">
                 <BackLink />
                 <h1 className="mt-3">Stock Picks Tracker</h1>
-                
-                <div className="alert alert-info mt-3" role="alert">
-                    <strong>Setup Instructions:</strong> To use real-time stock data with your Finnhub API key:
-                    <ol className="mb-0 mt-2">
-                        <li>Create a file named <code>.env.local</code> in the project root</li>
-                        <li>Add: <code>FINNHUB_API_KEY=your_api_key_here</code></li>
-                        <li>Restart the dev server</li>
-                    </ol>
-                    Get your free API key at <a href="https://finnhub.io" target="_blank" rel="noreferrer">finnhub.io</a> (60 requests/minute free tier).
-                    Each saved pick shows whether the data is <strong>Live</strong> or <strong>Mock</strong>.
-                </div>
 
                 <div className="row gx-5 form-group mt-4">
                     <div className="col-3">
@@ -187,6 +176,10 @@ const StockPicks = () => {
                         </div>
                     </div>
                 )}
+
+                <div className="alert alert-info mt-3" role="alert">
+                    <strong>Powered by: Finnhub</strong> 
+                </div>
             </div>
         </div>
     );
