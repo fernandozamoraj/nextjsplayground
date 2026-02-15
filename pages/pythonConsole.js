@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import BackLink from '../comps/backLink';
 import ActionButton from '../comps/actionButton';
 
@@ -50,26 +50,26 @@ const PythonConsole = () => {
         selectedSample: 'intro'
     });
 
-    const normalizeOutput = (text) => {
+    const normalizeOutput = useCallback((text) => {
         if (!text) {
             return '';
         }
         return text.endsWith('\n') ? text : `${text}\n`;
-    };
+    }, []);
 
-    const appendOutput = (text) => {
+    const appendOutput = useCallback((text) => {
         setConsoleState((prev) => ({
             ...prev,
             output: `${prev.output}${normalizeOutput(text)}`
         }));
-    };
+    }, [normalizeOutput]);
 
-    const appendError = (text) => {
+    const appendError = useCallback((text) => {
         setConsoleState((prev) => ({
             ...prev,
             error: `${prev.error}${normalizeOutput(text)}`
         }));
-    };
+    }, [normalizeOutput]);
 
     useEffect(() => {
         let isMounted = true;
@@ -128,7 +128,7 @@ const PythonConsole = () => {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [appendError, appendOutput]);
 
     const handleRun = async (codeOverride) => {
         if (!pyodideRef.current || consoleState.isRunning) {
