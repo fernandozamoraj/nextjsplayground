@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import Head from 'next/head';
 import BackLink from '../comps/backLink';
 
 const TypingGamePage = () => {
@@ -65,6 +66,9 @@ const TypingGamePage = () => {
 
     return (
         <div className="container bg-lighter text-secondary">
+            <Head>
+                <link href="https://fonts.googleapis.com/css?family=Josefin+Slab|Orbitron" rel="stylesheet" />
+            </Head>
             <BackLink />
             <div className="row pb-3">
                 <div className="col-12 text-center">
