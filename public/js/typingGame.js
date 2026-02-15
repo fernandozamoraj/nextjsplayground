@@ -470,6 +470,17 @@ function createSentinels(){
       console.log(e.message);
     }
   };
+
+  this.stop = function(){
+    try{
+      if(_scene){
+        _scene.stop();
+      }
+    }
+    catch(e){
+      console.log(e.message);
+    }
+  };
   
 
 
@@ -518,6 +529,9 @@ function createSentinels(){
 var game;
 
 function init(){
+  if (game && typeof game.stop === 'function') {
+    game.stop();
+  }
   game = new Game();
   game.init();
   game.start();
