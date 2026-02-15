@@ -41,10 +41,6 @@ export default async function handler(req, res) {
 
         // Calculate date ranges for historical data
         const now = Math.floor(Date.now() / 1000);
-        const threeMonthsDate = new Date();
-        threeMonthsDate.setMonth(threeMonthsDate.getMonth() - 3);
-        const threeMonthsAgo = Math.floor(threeMonthsDate.getTime() / 1000);
-        
         const twelveMonthsDate = new Date();
         twelveMonthsDate.setMonth(twelveMonthsDate.getMonth() - 12);
         const twelveMonthsAgo = Math.floor(twelveMonthsDate.getTime() / 1000);
@@ -54,37 +50,15 @@ export default async function handler(req, res) {
         const candleResponse = await fetch(candleUrl);
         const candleData = await candleResponse.json();
 
-        let threeMonthHigh = quoteData.h || quoteData.c * 1.1;
-        let threeMonthLow = quoteData.l || quoteData.c * 0.9;
-        let twelveMonthHigh = quoteData.h || quoteData.c * 1.2;
-        let twelveMonthLow = quoteData.l || quoteData.c * 0.8;
+        let fiftyTwoWeekHigh = quoteData.h || quoteData.c;
+        let fiftyTwoWeekLow = quoteData.l || quoteData.c;
 
-        // If we have historical data, calculate actual highs/lows
         if (candleData.s === 'ok' && candleData.h && candleData.l && candleData.h.length > 0) {
-            const timestamps = candleData.t;
             const highs = candleData.h;
             const lows = candleData.l;
 
-            // Calculate 12-month highs/lows from all data
-            twelveMonthHigh = Math.max(...highs);
-            twelveMonthLow = Math.min(...lows);
-
-            // Calculate 3-month highs/lows
-            const threeMonthHighs = [];
-            const threeMonthLows = [];
-            
-            timestamps.forEach((timestamp, index) => {
-                if (timestamp >= threeMonthsAgo) {
-                    threeMonthHighs.push(highs[index]);
-                    threeMonthLows.push(lows[index]);
-                }
-            });
-
-            // Only update if we found data in the 3-month range
-            if (threeMonthHighs.length > 0) {
-                threeMonthHigh = Math.max(...threeMonthHighs);
-                threeMonthLow = Math.min(...threeMonthLows);
-            }
+            fiftyTwoWeekHigh = Math.max(...highs);
+            fiftyTwoWeekLow = Math.min(...lows);
         }
 
         // Return the aggregated data
@@ -92,10 +66,8 @@ export default async function handler(req, res) {
             symbol: symbolUpper,
             companyName: profileData.name || symbolUpper,
             currentPrice: quoteData.c,
-            threeMonthHigh: threeMonthHigh,
-            threeMonthLow: threeMonthLow,
-            twelveMonthHigh: twelveMonthHigh,
-            twelveMonthLow: twelveMonthLow,
+            fiftyTwoWeekHigh: fiftyTwoWeekHigh,
+            fiftyTwoWeekLow: fiftyTwoWeekLow,
             lastUpdated: new Date().toISOString()
         });
 

@@ -65,6 +65,13 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/pythonConsole">
+            <a className={styles.card}>
+            <h2>Python Console &rarr;</h2>
+            <p>Run basic Python code in the browser</p>
+          </a>
+          </Link>
+
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}

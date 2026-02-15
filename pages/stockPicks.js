@@ -71,6 +71,14 @@ const StockPicks = () => {
         return 'Unknown';
     };
 
+    const getFiftyTwoWeekHigh = (stock) => {
+        return stock.fiftyTwoWeekHigh ?? stock.twelveMonthHigh ?? stock.threeMonthHigh;
+    };
+
+    const getFiftyTwoWeekLow = (stock) => {
+        return stock.fiftyTwoWeekLow ?? stock.twelveMonthLow ?? stock.threeMonthLow;
+    };
+
     return (
         <div>
             <div className="container">
@@ -125,10 +133,8 @@ const StockPicks = () => {
                                             <th scope="col">Symbol</th>
                                             <th scope="col">Company</th>
                                             <th scope="col">Current Price</th>
-                                            <th scope="col">3M High</th>
-                                            <th scope="col">3M Low</th>
-                                            <th scope="col">12M High</th>
-                                            <th scope="col">12M Low</th>
+                                            <th scope="col">52W High</th>
+                                            <th scope="col">52W Low</th>
                                             <th scope="col">Last Updated</th>
                                             <th scope="col">Source</th>
                                             <th scope="col">Action</th>
@@ -140,10 +146,8 @@ const StockPicks = () => {
                                                 <th>{stock.symbol}</th>
                                                 <td>{stock.companyName}</td>
                                                 <td>{getFormattedCurrency(stock.currentPrice)}</td>
-                                                <td>{getFormattedCurrency(stock.threeMonthHigh)}</td>
-                                                <td>{getFormattedCurrency(stock.threeMonthLow)}</td>
-                                                <td>{getFormattedCurrency(stock.twelveMonthHigh)}</td>
-                                                <td>{getFormattedCurrency(stock.twelveMonthLow)}</td>
+                                                <td>{getFormattedCurrency(getFiftyTwoWeekHigh(stock))}</td>
+                                                <td>{getFormattedCurrency(getFiftyTwoWeekLow(stock))}</td>
                                                 <td>{getFormattedDate(stock.lastUpdated)}</td>
                                                 <td>
                                                     <span className={`badge ${getSourceLabel(stock) === 'Live' ? 'bg-success' : getSourceLabel(stock) === 'Mock' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
