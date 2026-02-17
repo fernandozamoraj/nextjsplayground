@@ -68,6 +68,7 @@ function Game(){
   var _scoreSprite = false;
   var _killedLetters = [];
   var MAX_WORDS = 50;  
+  var _restartButton;
   
   
   function getRandomChar(){
@@ -469,11 +470,23 @@ function createSentinels(){
       createScoreSprite();
       createSentinels();
       createKilledLetters();
+      createRestartButton();
     }
     catch(e){
       console.log(e.message);
     }
   };
+
+  function createRestartButton(){
+    try{
+      _restartButton = new GameButton('Restart');
+      _restartButton.setSize(70, 56);
+      _restartButton.setPos((SCREEN_WIDTH / 2) - 160, 140);
+    }
+    catch(e){
+      console.log(e.message);
+    }
+  }
 
   this.stop = function(){
     try{
@@ -506,6 +519,11 @@ function createSentinels(){
       _scene.clear();
       //*****************
       var textValue = "*", i = 0, j = 0;
+
+      if(_restartButton && _restartButton.isClicked()){
+        init();
+        return;
+      }
 
       if(gameIsOver()){
         return;
