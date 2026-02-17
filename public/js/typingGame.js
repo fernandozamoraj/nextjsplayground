@@ -130,9 +130,13 @@ function Game(){
             var fontFamily = SCORE_FONT;
             var fontSize = "25";
             var fontColor = "#dddddd";
+            var totalWords = this.score.getTotalWords();
+            var countdownText = "WORDS: " + totalWords + " / " + MAX_WORDS;
+            var countdownX = this.x + 720;
 
             this.baseUpdate();
             this.writeText(fontFamily, fontSize, fontColor, this.score.getScoreString(), this.x, this.y);
+            this.writeText(fontFamily, fontSize, fontColor, countdownText, countdownX, this.y);
       };
 
       _scoreSprite = temp;
