@@ -50,8 +50,8 @@ export default async function handler(req, res) {
         const candleResponse = await fetch(candleUrl);
         const candleData = await candleResponse.json();
 
-        let fiftyTwoWeekHigh = quoteData.h || quoteData.c;
-        let fiftyTwoWeekLow = quoteData.l || quoteData.c;
+        let fiftyTwoWeekHigh = null;
+        let fiftyTwoWeekLow = null;
 
         if (candleData.s === 'ok' && candleData.h && candleData.l && candleData.h.length > 0) {
             const highs = candleData.h;

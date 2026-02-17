@@ -42,8 +42,13 @@ export const fetchStockData = async (symbol) => {
 export const saveStockPick = (stockData) => {
     try {
         const existingPicks = getStockPicks();
+        const existingPick = existingPicks.find(pick => pick.symbol === stockData.symbol);
+        const mergedPick = {
+            ...existingPick,
+            ...stockData
+        };
         const updatedPicks = existingPicks.filter(pick => pick.symbol !== stockData.symbol);
-        updatedPicks.unshift(stockData);
+        updatedPicks.unshift(mergedPick);
         localStorage.setItem('stockPicks', JSON.stringify(updatedPicks));
     } catch (error) {
         console.error('Error saving to local storage:', error);

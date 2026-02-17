@@ -1,18 +1,105 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ActionButton from '../comps/actionButton';
 import BackLink from '../comps/backLink';
 import { fetchStockData, saveStockPick, getStockPicks, removeStockPick } from '../utils/services/stockPicksFunctions';
 
 const StockPicks = () => {
     const [symbol, setSymbol] = useState('');
+    const [shares, setShares] = useState('');
     const [stockPicks, setStockPicks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const refreshStartedRef = useRef(false);
+
+    const getEasternTimeParts = () => {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            weekday: 'short',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: false
+        });
+
+        const parts = formatter.formatToParts(new Date());
+        const map = parts.reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, {});
+
+        return {
+            weekday: map.weekday,
+            hour: Number(map.hour),
+            minute: Number(map.minute)
+        };
+    };
+
+    const isMarketOpen = () => {
+        const { weekday, hour, minute } = getEasternTimeParts();
+        const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
+        if (!isWeekday) {
+            return false;
+        }
+
+        const minutesSinceMidnight = hour * 60 + minute;
+        const marketOpen = 9 * 60 + 30;
+        const marketClose = 16 * 60 + 30;
+        return minutesSinceMidnight >= marketOpen && minutesSinceMidnight <= marketClose;
+    };
+
+    const shouldRefreshStock = (stock) => {
+        if (!stock || !stock.lastUpdated) {
+            return true;
+        }
+        if (!Number.isFinite(stock.fiftyTwoWeekHigh) || !Number.isFinite(stock.fiftyTwoWeekLow)) {
+            return true;
+        }
+        const lastUpdateTime = new Date(stock.lastUpdated).getTime();
+        if (Number.isNaN(lastUpdateTime)) {
+            return true;
+        }
+        const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+        return Date.now() - lastUpdateTime >= twentyFourHoursMs;
+    };
 
     // Load saved stock picks on component mount
     useEffect(() => {
+        let isMounted = true;
+        if (refreshStartedRef.current) {
+            return () => {
+                isMounted = false;
+            };
+        }
+        refreshStartedRef.current = true;
         const savedPicks = getStockPicks();
         setStockPicks(savedPicks);
+
+        const refreshIfNeeded = async () => {
+            const picksToRefresh = savedPicks.filter((stock) => shouldRefreshStock(stock));
+            if (picksToRefresh.length === 0) {
+                return;
+            }
+
+            try {
+                for (const stock of picksToRefresh) {
+                    const freshData = await fetchStockData(stock.symbol);
+                    saveStockPick(freshData);
+                }
+                if (isMounted) {
+                    const updatedPicks = getStockPicks();
+                    setStockPicks(updatedPicks);
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setError(err.message);
+                }
+            }
+        };
+
+        refreshIfNeeded();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const handleAddStock = async () => {
@@ -25,8 +112,13 @@ const StockPicks = () => {
         setError('');
 
         try {
+            const parsedShares = Number.parseInt(shares, 10);
+            const safeShares = Number.isFinite(parsedShares) && parsedShares >= 0 ? parsedShares : 0;
             const stockData = await fetchStockData(symbol.trim());
-            saveStockPick(stockData);
+            saveStockPick({
+                ...stockData,
+                shares: safeShares
+            });
             
             // Update the displayed list
             const updatedPicks = getStockPicks();
@@ -34,6 +126,7 @@ const StockPicks = () => {
             
             // Clear input
             setSymbol('');
+            setShares('');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -47,6 +140,39 @@ const StockPicks = () => {
         setStockPicks(updatedPicks);
     };
 
+    const handleRefreshAll = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+            const currentPicks = getStockPicks();
+            for (const stock of currentPicks) {
+                const freshData = await fetchStockData(stock.symbol);
+                saveStockPick(freshData);
+            }
+            const updatedPicks = getStockPicks();
+            setStockPicks(updatedPicks);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSharesUpdate = (symbolToUpdate, value) => {
+        const parsedShares = Number.parseInt(value, 10);
+        const safeShares = Number.isFinite(parsedShares) && parsedShares >= 0 ? parsedShares : 0;
+
+        const updatedPicks = stockPicks.map((stock) =>
+            stock.symbol === symbolToUpdate
+                ? { ...stock, shares: safeShares }
+                : stock
+        );
+
+        setStockPicks(updatedPicks);
+        localStorage.setItem('stockPicks', JSON.stringify(updatedPicks));
+    };
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleAddStock();
@@ -54,11 +180,31 @@ const StockPicks = () => {
     };
 
     const getFormattedCurrency = (value) => {
+        if (!Number.isFinite(value)) {
+            return 'N/A';
+        }
         return `$ ${value.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
     };
 
     const getFormattedDate = (isoString) => {
         return new Date(isoString).toLocaleString();
+    };
+
+    const getMarketValue = (stock) => {
+        if (!Number.isFinite(stock.currentPrice) || !Number.isFinite(stock.shares)) {
+            return NaN;
+        }
+        return stock.currentPrice * stock.shares;
+    };
+
+    const getTotalMarketValue = () => {
+        return stockPicks.reduce((total, stock) => {
+            const marketValue = getMarketValue(stock);
+            if (!Number.isFinite(marketValue)) {
+                return total;
+            }
+            return total + marketValue;
+        }, 0);
     };
 
     const getSourceLabel = (stock) => {
@@ -72,11 +218,11 @@ const StockPicks = () => {
     };
 
     const getFiftyTwoWeekHigh = (stock) => {
-        return stock.fiftyTwoWeekHigh ?? stock.twelveMonthHigh ?? stock.threeMonthHigh;
+        return stock.fiftyTwoWeekHigh;
     };
 
     const getFiftyTwoWeekLow = (stock) => {
-        return stock.fiftyTwoWeekLow ?? stock.twelveMonthLow ?? stock.threeMonthLow;
+        return stock.fiftyTwoWeekLow;
     };
 
     return (
@@ -103,6 +249,26 @@ const StockPicks = () => {
                     </div>
                 </div>
 
+                <div className="row gx-5 form-group mt-3">
+                    <div className="col-3">
+                        <label htmlFor="sharesInput" className="form-label">Shares</label>
+                    </div>
+                    <div className="col-6">
+                        <input
+                            type="number"
+                            className="form-control"
+                            id="sharesInput"
+                            placeholder="Enter shares (e.g., 10)"
+                            min="0"
+                            step="1"
+                            value={shares}
+                            onChange={(e) => setShares(e.target.value.replace(/\D/g, ''))}
+                            onKeyPress={handleKeyPress}
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
+
                 {error && (
                     <div className="row mt-2">
                         <div className="col-9">
@@ -120,12 +286,21 @@ const StockPicks = () => {
                             text={loading ? "Loading..." : "Add Stock"} 
                         />
                     </div>
+                    <div className="col-sm-3">
+                        <ActionButton
+                            onClick={handleRefreshAll}
+                            text={loading ? "Refreshing..." : "Refresh All"}
+                        />
+                    </div>
                 </div>
 
                 {stockPicks.length > 0 && (
                     <div className="row mt-5">
                         <div className="col-12">
                             <h2>Saved Stock Picks</h2>
+                            <div className="alert alert-secondary" role="alert">
+                                <strong>Total Market Value:</strong> {getFormattedCurrency(getTotalMarketValue())}
+                            </div>
                             <div className="table-responsive">
                                 <table className="table table-striped table-hover">
                                     <thead className="thead-dark">
@@ -135,6 +310,8 @@ const StockPicks = () => {
                                             <th scope="col">Current Price</th>
                                             <th scope="col">52W High</th>
                                             <th scope="col">52W Low</th>
+                                            <th scope="col">Shares</th>
+                                            <th scope="col">Market Value</th>
                                             <th scope="col">Last Updated</th>
                                             <th scope="col">Source</th>
                                             <th scope="col">Action</th>
@@ -148,6 +325,18 @@ const StockPicks = () => {
                                                 <td>{getFormattedCurrency(stock.currentPrice)}</td>
                                                 <td>{getFormattedCurrency(getFiftyTwoWeekHigh(stock))}</td>
                                                 <td>{getFormattedCurrency(getFiftyTwoWeekLow(stock))}</td>
+                                                <td>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control form-control-sm"
+                                                        min="0"
+                                                        step="1"
+                                                        value={Number.isFinite(stock.shares) ? stock.shares : ''}
+                                                        onChange={(e) => handleSharesUpdate(stock.symbol, e.target.value)}
+                                                        disabled={loading}
+                                                    />
+                                                </td>
+                                                <td>{getFormattedCurrency(getMarketValue(stock))}</td>
                                                 <td>{getFormattedDate(stock.lastUpdated)}</td>
                                                 <td>
                                                     <span className={`badge ${getSourceLabel(stock) === 'Live' ? 'bg-success' : getSourceLabel(stock) === 'Mock' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
