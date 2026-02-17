@@ -46,6 +46,17 @@ const SudokuSolver = () =>{
         setDashboard({board: newBoard, validationMessage:''});
     }
 
+    const resetBoard = () => {
+        let newBoard = [...INITIAL_BOARD];
+        let i = 0;
+        for (let row of INITIAL_BOARD) {
+            newBoard[i] = [...row];
+            i++;
+        }
+
+        setDashboard({ board: newBoard, validationMessage: '' });
+    };
+
     const cloneBoard = () =>{
         let newBoard = [...dashboard.board];
         let i = 0;
@@ -90,22 +101,25 @@ const SudokuSolver = () =>{
         <div className="container bg-lighter text-secondary">
             <BackLink/>
 
-            <div className="row pb-5">
+            <div className="row pb-2">
                 <div className="col-1"></div>
                 <div className="col-8 jumbotron text-center">
                     <h2 className="text-primary">Sudoku solver </h2>
                     <p>Plug in the numbers and click solve</p>
-                    <ActionButton onClick={()=>solvePuzzle()} text="Solve" />
+                    <div className="d-flex justify-content-center gap-2">
+                        <ActionButton onClick={()=>solvePuzzle()} text="Solve" compact={true} />
+                        <ActionButton onClick={() => resetBoard()} text="Reset" compact={true} />
+                    </div>
                 </div>
             </div>
-            <div className="row pb-5 text-danger">
+            <div className="row pb-2 text-danger">
                 <div className="col-1"></div>
                 <div className="col-10">
                     <h2>{dashboard.validationMessage}</h2>
                 </div>
             </div>
 
-            <div className="row pb-5 text-primary justify-content-center">
+            <div className="row pb-3 text-primary justify-content-center">
                 <div className="col-11 col-md-9 col-lg-8">
                     <div className="row gx-3 form-group justify-content-center">
                         {getFullHorizontalRowPanel(0)}
