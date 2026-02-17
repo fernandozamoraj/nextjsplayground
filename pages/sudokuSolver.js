@@ -23,7 +23,7 @@ const SudokuSolver = () =>{
 
     
     const updateBoard = (row, col, value) =>{
-        if(value < 0 || value > 9)
+        if(value < 0 || value > 99)
             value = 0;
 
         let newBoard = cloneBoard();
@@ -105,10 +105,9 @@ const SudokuSolver = () =>{
                 </div>
             </div>
 
-            <div className="row pb-5 text-primary">
-                <div className="col-1"/>
-                <div className="col-10">
-                    <div className="row gx-5 form-group">
+            <div className="row pb-5 text-primary justify-content-center">
+                <div className="col-11 col-md-9 col-lg-8">
+                    <div className="row gx-3 form-group justify-content-center">
                         {getFullHorizontalRowPanel(0)}
                         {getFullHorizontalRowPanel(3)}
                         {getFullHorizontalRowPanel(6)}
