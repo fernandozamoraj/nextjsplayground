@@ -28,6 +28,12 @@ const SudokuSolver = () =>{
 
         let newBoard = cloneBoard();
 
+        if(value === 0){
+            newBoard[row][col] = 0;
+            setDashboard({board: newBoard, validationMessage:''});
+            return;
+        }
+
         if(isValidMove(row, col, value, newBoard)){
             newBoard[row][col] = value;
             setDashboard({board: newBoard, validationMessage:''});

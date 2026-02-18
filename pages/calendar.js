@@ -36,6 +36,12 @@ const Calendar = () => {
         setPayConfig({...payConfig, [field]: parseInt(value)});
     };
 
+    const handlePrint = () => {
+        if (typeof window !== 'undefined') {
+            window.print();
+        }
+    };
+
     const firstPayDate = new Date(payConfig.year, payConfig.month, payConfig.day);
 
     const paydates = getPaydates(currentYear, firstPayDate, payConfig.payPeriodDays);
@@ -90,6 +96,8 @@ const Calendar = () => {
             </Head>
 
             <BackLink />
+
+            <div className={styles.printHeader}>Payday Calendar {currentYear}</div>
 
             <div className="row pb-4">
                 <div className="col-12">
@@ -166,6 +174,10 @@ const Calendar = () => {
                         text="Next Year" 
                         rightArrow={true}
                         onClick={() => handleYearChange(1)} 
+                    />
+                    <ActionButton
+                        text="Print"
+                        onClick={handlePrint}
                     />
                 </div>
             </div>

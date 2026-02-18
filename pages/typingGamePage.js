@@ -1,8 +1,15 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import Head from 'next/head';
 import BackLink from '../comps/backLink';
+import ActionButton from '../comps/actionButton';
 
 const TypingGamePage = () => {
+    const handleRestart = useCallback(() => {
+        if (typeof window !== 'undefined' && typeof window.typingGameRestart === 'function') {
+            window.typingGameRestart();
+        }
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -75,6 +82,7 @@ const TypingGamePage = () => {
                     <h2 className="text-primary">Typing Game</h2>
                     <p>Type the falling words to score points.</p>
                     <p>Powered by <a href="http://aharrisbooks.net/h5g/" target="_blank" rel="noopener noreferrer">SimpleGame.js</a></p>
+                    <ActionButton text="Restart" onClick={handleRestart} compact />
                 </div>
             </div>
 

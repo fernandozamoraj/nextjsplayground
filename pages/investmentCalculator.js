@@ -42,6 +42,85 @@ const InvestmentCalculator = () => {
         return `$ ${currency.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
     };
 
+    const getPlainCurrency = (currency) => {
+        if (!Number.isFinite(currency)) {
+            return '$ 0.00';
+        }
+        return `$ ${currency.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
+    };
+
+    const padLeft = (value, width) => {
+        const text = String(value);
+        if (text.length >= width) {
+            return text;
+        }
+        return `${' '.repeat(width - text.length)}${text}`;
+    };
+
+    const padRight = (value, width) => {
+        const text = String(value);
+        if (text.length >= width) {
+            return text;
+        }
+        return `${text}${' '.repeat(width - text.length)}`;
+    };
+
+    const buildInvestmentText = () => {
+        const startingAmount = calculatorState.startingAmount * 1.0;
+        const annualReturn = calculatorState.annualReturn * 1.0;
+        const monthlyContribution = calculatorState.monthlyContribution * 1.0;
+        const monthlyGrowth = calculatorState.monthlyGrowth * 1.0;
+        const timeInMonths = calculatorState.timeInMonths * 1;
+
+        const header = [
+            padRight('Month', 6),
+            padRight('Balance', 16),
+            padRight('Interest Earned', 18),
+            padRight('Monthly Contribution', 22)
+        ].join(' ');
+
+        const lines = [
+            'INVESTMENT SUMMARY',
+            `Starting Amount: ${getPlainCurrency(startingAmount)}`,
+            `Annual Return: ${annualReturn.toFixed(2)}%`,
+            `Monthly Contribution: ${getPlainCurrency(monthlyContribution)}`,
+            `Annual Monthly Increase: ${monthlyGrowth.toFixed(2)}%`,
+            `Investment Period (months): ${timeInMonths}`,
+            `Future Value: ${getPlainCurrency(calculatorState.finalBalance)}`,
+            `Total Contributions: ${getPlainCurrency(calculatorState.totalContributions)}`,
+            `Total Interest Earned: ${getPlainCurrency(calculatorState.totalInterest)}`,
+            '',
+            'MONTH-BY-MONTH BREAKDOWN',
+            header,
+            '-'.repeat(header.length)
+        ];
+
+        calculatorState.results.forEach((result) => {
+            const line = [
+                padLeft(result.month, 6),
+                padLeft(getPlainCurrency(result.balance), 16),
+                padLeft(getPlainCurrency(result.interestEarned), 18),
+                padLeft(getPlainCurrency(result.monthlyContribution), 22)
+            ].join(' ');
+            lines.push(line);
+        });
+
+        return lines.join('\n');
+    };
+
+    const handleDownloadText = () => {
+        const content = buildInvestmentText();
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `investment-${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
     return (
         <div>
             <div className="container">
@@ -157,6 +236,9 @@ const InvestmentCalculator = () => {
                                     <li className="list-group-item">Total Contributions: {getFormattedCurrency(calculatorState.totalContributions)}</li>
                                     <li className="list-group-item">Total Interest Earned: {getFormattedCurrency(calculatorState.totalInterest)}</li>
                                 </ul>
+                                <div className="mb-3">
+                                    <ActionButton onClick={handleDownloadText} text="Download TXT" compact />
+                                </div>
 
                                 <h2>Month-by-Month Breakdown</h2>
                                 <table className="table table-striped table-sm">

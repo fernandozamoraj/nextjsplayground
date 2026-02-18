@@ -84,6 +84,85 @@ const AmmortizationCalculator = () =>{
     const getFormattedCurrency = (currency) =>{
         return `$ ${currency.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
     };
+
+    const getPlainCurrency = (currency) =>{
+        if (!Number.isFinite(currency)) {
+            return '$ 0.00';
+        }
+        return `$ ${currency.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')}`;
+    };
+
+    const padLeft = (value, width) =>{
+        const text = String(value);
+        if (text.length >= width) {
+            return text;
+        }
+        return `${' '.repeat(width - text.length)}${text}`;
+    };
+
+    const padRight = (value, width) =>{
+        const text = String(value);
+        if (text.length >= width) {
+            return text;
+        }
+        return `${text}${' '.repeat(width - text.length)}`;
+    };
+
+    const buildAmmortizationText = () =>{
+        const amount = calculatorState.amount * 1.0;
+        const rate = calculatorState.interestRate * 1.0;
+        const term = calculatorState.termLength * 1;
+
+        const header = [
+            padRight('#', 4),
+            padRight('Principal', 15),
+            padRight('Principal Only', 17),
+            padRight('Interest Only', 16),
+            padRight('Accum Interest', 17),
+            padRight('Accum Total', 16)
+        ].join(' ');
+
+        const lines = [
+            'AMMORTIZATION SUMMARY',
+            `Loan Amount: ${getPlainCurrency(amount)}`,
+            `Interest Rate: ${rate.toFixed(2)}%`,
+            `Term Length (months): ${term}`,
+            `Payment: ${getPlainCurrency(calculatorState.payment)}`,
+            `Total Interest: ${getPlainCurrency(calculatorState.totalInterest)}`,
+            `Total: ${getPlainCurrency(calculatorState.totalOverall)}`,
+            '',
+            'AMMORTIZATION TABLE',
+            header,
+            '-'.repeat(header.length)
+        ];
+
+        calculatorState.ammortizationTable.forEach((row, index) =>{
+            const line = [
+                padLeft(index + 1, 4),
+                padLeft(getPlainCurrency(row.principal), 15),
+                padLeft(getPlainCurrency(row.principalOnly), 17),
+                padLeft(getPlainCurrency(row.interestOnly), 16),
+                padLeft(getPlainCurrency(row.totalInterest), 17),
+                padLeft(getPlainCurrency(row.total), 16)
+            ].join(' ');
+            lines.push(line);
+        });
+
+        return lines.join('\n');
+    };
+
+    const handleDownloadText = () =>{
+        const content = buildAmmortizationText();
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ammortization-${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
  
  return (
         <div>
@@ -157,6 +236,9 @@ const AmmortizationCalculator = () =>{
                                     <li className="list-group-item">Total Inerest : {`${getFormattedCurrency(calculatorState.totalInterest)}`}</li>
                                     <li className="list-group-item">Total: {`${getFormattedCurrency(calculatorState.totalOverall)}`}   </li>
                                 </ul>
+                                <div className="mt-2">
+                                    <ActionButton onClick={handleDownloadText} text="Download TXT" compact />
+                                </div>
                             <h2>Ammortization Table</h2>  
                             <table className="table table-striped table-sm">
                                 <thead className="thead-dark">

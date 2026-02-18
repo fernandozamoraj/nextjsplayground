@@ -12,7 +12,7 @@
 }
 
 .yearTitle {
-    font-size: 32px;
+    font-size: 40px;
     font-weight: bold;
     color: #1f2937;
     padding: 0 20px;
@@ -27,11 +27,17 @@
     margin: 0 auto;
 }
 
+.printHeader {
+    display: none;
+}
+
+
 .monthContainer {
+    margin: 100px 0 10px 0;
     background-color: white;
     border-radius: 12px;
     padding: 15px;
-    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 4p 6px rgba(239, 68, 68, 0.1);
     border: 2px solid #fecaca;
     transition: transform 0.2s ease;
 }
@@ -107,5 +113,43 @@
 @media (max-width: 768px) {
     .calendarGrid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    .printHeader {
+        display: block;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+        color: #111827;
+    }
+
+    .calendarGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-top: 48px;
+        padding-top: 8px;
+    }
+
+    .monthContainer {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .monthContainer:nth-child(4),
+    .monthContainer:nth-child(8),
+    .monthContainer:nth-child(12) {
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .payday,
+    .paydayThird {
+        background-color: #4b5563 !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }
