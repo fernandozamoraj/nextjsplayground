@@ -353,18 +353,24 @@ const StockPicks = () => {
 
                 <div className="row mt-2">
                     <div className="col-sm-6">
-                        <ActionButton
+                        <button
+                            type="button"
+                            className="btn w-100"
+                            style={{ backgroundColor: '#ffffff', color: '#f97316', borderColor: '#f97316', borderWidth: '2px' }}
                             onClick={handleExport}
-                            text="Export JSON"
-                            compact
-                        />
+                        >
+                            Export JSON
+                        </button>
                     </div>
                     <div className="col-sm-6">
-                        <ActionButton
+                        <button
+                            type="button"
+                            className="btn w-100"
+                            style={{ backgroundColor: '#ffffff', color: '#f97316', borderColor: '#f97316', borderWidth: '2px' }}
                             onClick={handleImportClick}
-                            text="Import JSON"
-                            compact
-                        />
+                        >
+                            Import JSON
+                        </button>
                         <input
                             type="file"
                             accept="application/json"
