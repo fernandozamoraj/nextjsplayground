@@ -10,6 +10,7 @@ const StockPicks = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const refreshStartedRef = useRef(false);
+    const importFileRef = useRef(null);
 
     const getEasternTimeParts = () => {
         const formatter = new Intl.DateTimeFormat('en-US', {
@@ -159,6 +160,62 @@ const StockPicks = () => {
         }
     };
 
+    const handleExport = () => {
+        const picksToExport = getStockPicks();
+        const payload = JSON.stringify(picksToExport, null, 2);
+        const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `stock-picks-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
+    const handleImportClick = () => {
+        if (importFileRef.current) {
+            importFileRef.current.value = '';
+            importFileRef.current.click();
+        }
+    };
+
+    const handleImportFileChange = (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                if (!Array.isArray(parsed)) {
+                    throw new Error('Invalid file format. Expected an array of stock picks.');
+                }
+
+                const normalized = parsed
+                    .filter((item) => item && item.symbol)
+                    .map((item) => ({
+                        ...item,
+                        symbol: String(item.symbol).toUpperCase(),
+                        shares: Number.isFinite(Number(item.shares)) ? Number(item.shares) : 0
+                    }));
+
+                localStorage.setItem('stockPicks', JSON.stringify(normalized));
+                setStockPicks(normalized);
+                setError('');
+            } catch (err) {
+                setError(err.message);
+            }
+        };
+        reader.onerror = () => {
+            setError('Unable to read the selected file.');
+        };
+        reader.readAsText(file);
+    };
+
     const handleSharesUpdate = (symbolToUpdate, value) => {
         const parsedShares = Number.parseInt(value, 10);
         const safeShares = Number.isFinite(parsedShares) && parsedShares >= 0 ? parsedShares : 0;
@@ -290,6 +347,30 @@ const StockPicks = () => {
                         <ActionButton
                             onClick={handleRefreshAll}
                             text={loading ? "Refreshing..." : "Refresh All"}
+                        />
+                    </div>
+                </div>
+
+                <div className="row mt-2">
+                    <div className="col-sm-6">
+                        <ActionButton
+                            onClick={handleExport}
+                            text="Export JSON"
+                            compact
+                        />
+                    </div>
+                    <div className="col-sm-6">
+                        <ActionButton
+                            onClick={handleImportClick}
+                            text="Import JSON"
+                            compact
+                        />
+                        <input
+                            type="file"
+                            accept="application/json"
+                            ref={importFileRef}
+                            onChange={handleImportFileChange}
+                            style={{ display: 'none' }}
                         />
                     </div>
                 </div>
