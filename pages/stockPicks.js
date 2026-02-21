@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ActionButton from '../comps/actionButton';
 import BackLink from '../comps/backLink';
-import { fetchStockData, saveStockPick, getStockPicks, removeStockPick } from '../utils/services/stockPicksFunctions';
+import { fetchStockData, saveStockPick, getStockPicks, removeStockPick, getStockListFromCsv } from '../utils/services/stockPicksFunctions';
 
 const StockPicks = () => {
     const [symbol, setSymbol] = useState('');
@@ -9,6 +9,7 @@ const StockPicks = () => {
     const [stockPicks, setStockPicks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [stockList, setStockList] = useState([]);
     const refreshStartedRef = useRef(false);
     const importFileRef = useRef(null);
 
@@ -97,6 +98,26 @@ const StockPicks = () => {
         };
 
         refreshIfNeeded();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        getStockListFromCsv()
+            .then((list) => {
+                if (isMounted) {
+                    setStockList(list);
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setStockList([]);
+                }
+            });
 
         return () => {
             isMounted = false;
@@ -282,6 +303,11 @@ const StockPicks = () => {
         return stock.fiftyTwoWeekLow;
     };
 
+    const normalizedQuery = symbol.trim().toUpperCase();
+    const selectedStockName = normalizedQuery.length === 0
+        ? ''
+        : (stockList.find((item) => item.symbol === normalizedQuery) || {}).name || '';
+
     return (
         <div>
             <div className="container">
@@ -303,6 +329,9 @@ const StockPicks = () => {
                             onKeyPress={handleKeyPress}
                             disabled={loading}
                         />
+                        {selectedStockName && (
+                            <div className="form-text">{selectedStockName}</div>
+                        )}
                     </div>
                 </div>
 

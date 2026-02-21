@@ -65,6 +65,20 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/students">
+            <a className={styles.card}>
+            <h2>Student Directory &rarr;</h2>
+            <p>Manage student records with drawer-based edits and inserts</p>
+          </a>
+          </Link>
+
+          <Link href="/todoapp">
+            <a className={styles.card}>
+            <h2>Todo App &rarr;</h2>
+            <p>Track your tasks with due dates, notes, and status indicators</p>
+          </a>
+          </Link>
+
           <Link href="/pythonConsole">
             <a className={styles.card}>
             <h2>Python Console &rarr;</h2>

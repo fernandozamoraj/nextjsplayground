@@ -82,3 +82,68 @@ export const removeStockPick = (symbol) => {
         console.error('Error removing from local storage:', error);
     }
 };
+
+let cachedStockList = null;
+
+const parseCsvLine = (line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+
+        if (char === '"' && nextChar === '"') {
+            current += '"';
+            i += 1;
+            continue;
+        }
+
+        if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+            values.push(current);
+            current = '';
+            continue;
+        }
+
+        current += char;
+    }
+
+    values.push(current);
+    return values.map((value) => value.trim());
+};
+
+export const getStockListFromCsv = async () => {
+    if (cachedStockList) {
+        return cachedStockList;
+    }
+
+    const response = await fetch('/js/stocks.csv');
+    if (!response.ok) {
+        throw new Error('Unable to load stock list.');
+    }
+
+    const csvText = await response.text();
+    const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    if (lines.length <= 1) {
+        cachedStockList = [];
+        return cachedStockList;
+    }
+
+    const dataLines = lines.slice(1);
+    cachedStockList = dataLines
+        .map((line) => parseCsvLine(line))
+        .filter((fields) => fields.length >= 2)
+        .map((fields) => ({
+            symbol: fields[0].toUpperCase(),
+            name: fields[1]
+        }))
+        .filter((item) => item.symbol && item.name);
+
+    return cachedStockList;
+};

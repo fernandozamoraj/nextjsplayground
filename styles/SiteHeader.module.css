@@ -1,0 +1,47 @@
+.header {
+  background-color: #1f1f1f;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+}
+
+.storageDisplay {
+  font-size: 0.9rem;
+  color: #ff9500;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0.75rem 1rem;
+  }
+
+  .headerContent {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .storageDisplay {
+    font-size: 0.8rem;
+  }
+}
