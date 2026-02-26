@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { getPaydates, generateMonthData } from '../utils/services/calendarFunctions';
 import BackLink from '../comps/backLink';
@@ -21,12 +21,40 @@ const Calendar = () => {
         firstFriday.setDate(firstFriday.getDate() + 1);
     }
     const [currentYear, setCurrentYear] = useState(currentYearValue);
-    const [payConfig, setPayConfig] = useState({
+    
+    // Initialize payConfig with default values
+    const getDefaultPayConfig = () => ({
         month: 0,  // January (0-indexed)
         day: firstFriday.getDate(), //set to first friday
         year: currentYearValue,
         payPeriodDays: 14
     });
+    
+    const [payConfig, setPayConfig] = useState(() => {
+        // Try to load saved config from localStorage
+        if (typeof window !== 'undefined') {
+            try {
+                const savedConfig = localStorage.getItem('calendarPayConfig');
+                if (savedConfig) {
+                    return JSON.parse(savedConfig);
+                }
+            } catch (error) {
+                console.error('Error loading saved pay configuration:', error);
+            }
+        }
+        return getDefaultPayConfig();
+    });
+    
+    // Save payConfig to localStorage whenever it changes
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('calendarPayConfig', JSON.stringify(payConfig));
+            } catch (error) {
+                console.error('Error saving pay configuration:', error);
+            }
+        }
+    }, [payConfig]);
 
     const handleYearChange = (delta) => {
         setCurrentYear(currentYear + delta);
