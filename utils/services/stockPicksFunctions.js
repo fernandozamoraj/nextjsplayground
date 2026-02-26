@@ -147,3 +147,121 @@ export const getStockListFromCsv = async () => {
 
     return cachedStockList;
 };
+
+/**
+ * Get today's date in YYYY-MM-DD format
+ * @returns {string} Date string
+ */
+export const getTodayDateString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+/**
+ * Get month string in YYYY-MM format from date string
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @returns {string} Month string
+ */
+export const getMonthString = (dateString) => {
+    return dateString.substring(0, 7);
+};
+
+/**
+ * Get growth history from local storage
+ * @returns {Object} Growth history with daily and monthly values
+ */
+export const getGrowthHistory = () => {
+    try {
+        const history = localStorage.getItem('stockGrowthHistory');
+        if (!history) {
+            return { daily: [], monthly: [] };
+        }
+        const parsed = JSON.parse(history);
+        return {
+            daily: Array.isArray(parsed.daily) ? parsed.daily : [],
+            monthly: Array.isArray(parsed.monthly) ? parsed.monthly : []
+        };
+    } catch (error) {
+        console.error('Error reading growth history from local storage:', error);
+        return { daily: [], monthly: [] };
+    }
+};
+
+/**
+ * Save growth history to local storage
+ * @param {Object} history - Growth history object
+ */
+export const saveGrowthHistory = (history) => {
+    try {
+        localStorage.setItem('stockGrowthHistory', JSON.stringify(history));
+    } catch (error) {
+        console.error('Error saving growth history to local storage:', error);
+    }
+};
+
+/**
+ * Update growth history with today's total value
+ * @param {number} totalValue - Today's total portfolio value
+ */
+export const updateGrowthHistory = (totalValue) => {
+    const today = getTodayDateString();
+    const history = getGrowthHistory();
+    
+    // Check if today's value already exists
+    const todayExists = history.daily.some(entry => entry.date === today);
+    if (todayExists) {
+        return; // Already saved today
+    }
+    
+    // Add today's value
+    history.daily.push({ date: today, value: totalValue });
+    
+    // Calculate date 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoString = sevenDaysAgo.toISOString().substring(0, 10);
+    
+    // Filter out daily entries older than 7 days
+    const recentDaily = [];
+    const oldDaily = [];
+    
+    for (const entry of history.daily) {
+        if (entry.date >= sevenDaysAgoString) {
+            recentDaily.push(entry);
+        } else {
+            oldDaily.push(entry);
+        }
+    }
+    
+    // Process old daily entries - keep highest per month
+    const monthlyMap = new Map();
+    
+    // First, load existing monthly data
+    for (const entry of history.monthly) {
+        monthlyMap.set(entry.month, entry.value);
+    }
+    
+    // Then, process old daily entries
+    for (const entry of oldDaily) {
+        const month = getMonthString(entry.date);
+        const currentMax = monthlyMap.get(month);
+        
+        if (currentMax === undefined || entry.value > currentMax) {
+            monthlyMap.set(month, entry.value);
+        }
+    }
+    
+    // Convert monthly map to array and sort by month
+    const monthly = Array.from(monthlyMap.entries())
+        .map(([month, value]) => ({ month, value }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+    
+    // Update history
+    history.daily = recentDaily.sort((a, b) => a.date.localeCompare(b.date));
+    history.monthly = monthly;
+    
+    saveGrowthHistory(history);
+};

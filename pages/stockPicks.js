@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ActionButton from '../comps/actionButton';
 import BackLink from '../comps/backLink';
-import { fetchStockData, saveStockPick, getStockPicks, removeStockPick, getStockListFromCsv } from '../utils/services/stockPicksFunctions';
+import { fetchStockData, saveStockPick, getStockPicks, removeStockPick, getStockListFromCsv, updateGrowthHistory, getGrowthHistory } from '../utils/services/stockPicksFunctions';
 
 const StockPicks = () => {
     const [symbol, setSymbol] = useState('');
@@ -10,6 +10,8 @@ const StockPicks = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [stockList, setStockList] = useState([]);
+    const [growthHistory, setGrowthHistory] = useState({ daily: [], monthly: [] });
+    const [showGrowthDrawer, setShowGrowthDrawer] = useState(false);
     const refreshStartedRef = useRef(false);
     const importFileRef = useRef(null);
 
@@ -124,6 +126,32 @@ const StockPicks = () => {
         };
     }, []);
 
+    // Update growth history when stock picks change
+    useEffect(() => {
+        const calculateTotal = () => {
+            return stockPicks.reduce((total, stock) => {
+                const marketValue = Number.isFinite(stock.currentPrice) && Number.isFinite(stock.shares)
+                    ? stock.currentPrice * stock.shares
+                    : NaN;
+                if (!Number.isFinite(marketValue)) {
+                    return total;
+                }
+                return total + marketValue;
+            }, 0);
+        };
+        
+        const totalValue = calculateTotal();
+        if (Number.isFinite(totalValue) && totalValue > 0) {
+            updateGrowthHistory(totalValue);
+            setGrowthHistory(getGrowthHistory());
+        }
+    }, [stockPicks]);
+
+    // Load growth history on mount
+    useEffect(() => {
+        setGrowthHistory(getGrowthHistory());
+    }, []);
+
     const handleAddStock = async () => {
         if (!symbol.trim()) {
             setError('Please enter a stock symbol');
@@ -183,7 +211,11 @@ const StockPicks = () => {
 
     const handleExport = () => {
         const picksToExport = getStockPicks();
-        const payload = JSON.stringify(picksToExport, null, 2);
+        const historyToExport = getGrowthHistory();
+        const payload = JSON.stringify({
+            stockPicks: picksToExport,
+            growthHistory: historyToExport
+        }, null, 2);
         const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -212,11 +244,28 @@ const StockPicks = () => {
         reader.onload = () => {
             try {
                 const parsed = JSON.parse(reader.result);
-                if (!Array.isArray(parsed)) {
-                    throw new Error('Invalid file format. Expected an array of stock picks.');
+                
+                // Support both old format (just array) and new format (object with stockPicks and growthHistory)
+                let stockPicksData;
+                let growthHistoryData = { daily: [], monthly: [] };
+                
+                if (Array.isArray(parsed)) {
+                    // Old format - just an array of stock picks
+                    stockPicksData = parsed;
+                } else if (parsed && typeof parsed === 'object') {
+                    // New format - object with stockPicks and growthHistory
+                    stockPicksData = Array.isArray(parsed.stockPicks) ? parsed.stockPicks : [];
+                    if (parsed.growthHistory && typeof parsed.growthHistory === 'object') {
+                        growthHistoryData = {
+                            daily: Array.isArray(parsed.growthHistory.daily) ? parsed.growthHistory.daily : [],
+                            monthly: Array.isArray(parsed.growthHistory.monthly) ? parsed.growthHistory.monthly : []
+                        };
+                    }
+                } else {
+                    throw new Error('Invalid file format.');
                 }
 
-                const normalized = parsed
+                const normalized = stockPicksData
                     .filter((item) => item && item.symbol)
                     .map((item) => ({
                         ...item,
@@ -225,7 +274,9 @@ const StockPicks = () => {
                     }));
 
                 localStorage.setItem('stockPicks', JSON.stringify(normalized));
+                localStorage.setItem('stockGrowthHistory', JSON.stringify(growthHistoryData));
                 setStockPicks(normalized);
+                setGrowthHistory(growthHistoryData);
                 setError('');
             } catch (err) {
                 setError(err.message);
@@ -414,8 +465,16 @@ const StockPicks = () => {
                     <div className="row mt-5">
                         <div className="col-12">
                             <h2>Saved Stock Picks</h2>
-                            <div className="alert alert-secondary" role="alert">
-                                <strong>Total Market Value:</strong> {getFormattedCurrency(getTotalMarketValue())}
+                            <div className="alert alert-secondary d-flex justify-content-between align-items-center" role="alert">
+                                <div>
+                                    <strong>Total Market Value:</strong> {getFormattedCurrency(getTotalMarketValue())}
+                                </div>
+                                <button 
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => setShowGrowthDrawer(true)}
+                                >
+                                    View Growth History
+                                </button>
                             </div>
                             <div className="table-responsive">
                                 <table className="table table-striped table-hover">
@@ -489,6 +548,78 @@ const StockPicks = () => {
                 <div className="alert alert-info mt-3" role="alert">
                     <strong>Powered by: Finnhub</strong> 
                 </div>
+
+                {/* Growth History Offcanvas Drawer */}
+                <div className={`offcanvas offcanvas-end${showGrowthDrawer ? ' show' : ''}`} tabIndex="-1" style={{ visibility: showGrowthDrawer ? 'visible' : 'hidden' }}>
+                    <div className="offcanvas-header">
+                        <h5 className="offcanvas-title">Portfolio Growth History</h5>
+                        <button type="button" className="btn-close" onClick={() => setShowGrowthDrawer(false)} aria-label="Close"></button>
+                    </div>
+                    <div className="offcanvas-body">
+                        <p className="text-muted">
+                            Daily values are kept for the last 7 days. For older data, only the highest value per month is retained.
+                        </p>
+                        
+                        {growthHistory.daily.length === 0 && growthHistory.monthly.length === 0 && (
+                            <div className="alert alert-info" role="alert">
+                                No growth history available yet. Check back after a day or two!
+                            </div>
+                        )}
+                        
+                        {growthHistory.daily.length > 0 && (
+                            <div className="mb-4">
+                                <h6 className="mb-3">Last 7 Days</h6>
+                                <div className="table-responsive">
+                                    <table className="table table-sm table-bordered">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th scope="col">Date</th>
+                                                <th scope="col">Portfolio Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {growthHistory.daily.map((entry, index) => (
+                                                <tr key={`daily-${entry.date}-${index}`}>
+                                                    <td>{new Date(entry.date).toLocaleDateString()}</td>
+                                                    <td>{getFormattedCurrency(entry.value)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {growthHistory.monthly.length > 0 && (
+                            <div className="mb-4">
+                                <h6 className="mb-3">Monthly Highs</h6>
+                                <div className="table-responsive">
+                                    <table className="table table-sm table-bordered">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th scope="col">Month</th>
+                                                <th scope="col">Highest Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {growthHistory.monthly.map((entry, index) => {
+                                                const [year, month] = entry.month.split('-');
+                                                const monthName = new Date(year, parseInt(month) - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+                                                return (
+                                                    <tr key={`monthly-${entry.month}-${index}`}>
+                                                        <td>{monthName}</td>
+                                                        <td>{getFormattedCurrency(entry.value)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {showGrowthDrawer && <div className="offcanvas-backdrop fade show" onClick={() => setShowGrowthDrawer(false)}></div>}
             </div>
         </div>
     );
