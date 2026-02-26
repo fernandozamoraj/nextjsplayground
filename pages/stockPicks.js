@@ -51,6 +51,10 @@ const StockPicks = () => {
     };
 
     const shouldRefreshStock = (stock) => {
+        // Don't refresh manual stocks
+        if (stock && stock.isManual === true) {
+            return false;
+        }
         if (!stock || !stock.lastUpdated) {
             return true;
         }
@@ -85,8 +89,13 @@ const StockPicks = () => {
 
             try {
                 for (const stock of picksToRefresh) {
-                    const freshData = await fetchStockData(stock.symbol);
-                    saveStockPick(freshData);
+                    try {
+                        const freshData = await fetchStockData(stock.symbol);
+                        saveStockPick(freshData);
+                    } catch (err) {
+                        // If refresh fails, keep the existing data
+                        console.warn(`Failed to refresh ${stock.symbol}:`, err.message);
+                    }
                 }
                 if (isMounted) {
                     const updatedPicks = getStockPicks();
@@ -178,7 +187,32 @@ const StockPicks = () => {
             setSymbol('');
             setShares('');
         } catch (err) {
-            setError(err.message);
+            // If API fetch fails, offer to add as manual entry
+            const parsedShares = Number.parseInt(shares, 10);
+            const safeShares = Number.isFinite(parsedShares) && parsedShares >= 0 ? parsedShares : 0;
+            
+            // Create manual stock entry
+            const manualStock = {
+                symbol: symbol.trim().toUpperCase(),
+                companyName: selectedStockName || symbol.trim().toUpperCase(),
+                currentPrice: 0,
+                fiftyTwoWeekHigh: 0,
+                fiftyTwoWeekLow: 0,
+                shares: safeShares,
+                lastUpdated: new Date().toISOString(),
+                isMock: false,
+                isManual: true,
+                dataSource: 'manual'
+            };
+            
+            saveStockPick(manualStock);
+            const updatedPicks = getStockPicks();
+            setStockPicks(updatedPicks);
+            
+            // Clear input
+            setSymbol('');
+            setShares('');
+            // Don't set error - stock was added successfully as manual
         } finally {
             setLoading(false);
         }
@@ -197,8 +231,17 @@ const StockPicks = () => {
         try {
             const currentPicks = getStockPicks();
             for (const stock of currentPicks) {
-                const freshData = await fetchStockData(stock.symbol);
-                saveStockPick(freshData);
+                // Skip manual stocks
+                if (stock.isManual === true) {
+                    continue;
+                }
+                try {
+                    const freshData = await fetchStockData(stock.symbol);
+                    saveStockPick(freshData);
+                } catch (err) {
+                    // If refresh fails, keep the existing data
+                    console.warn(`Failed to refresh ${stock.symbol}:`, err.message);
+                }
             }
             const updatedPicks = getStockPicks();
             setStockPicks(updatedPicks);
@@ -302,6 +345,20 @@ const StockPicks = () => {
         localStorage.setItem('stockPicks', JSON.stringify(updatedPicks));
     };
 
+    const handlePriceUpdate = (symbolToUpdate, value) => {
+        const parsedPrice = Number.parseFloat(value);
+        const safePrice = Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : 0;
+
+        const updatedPicks = stockPicks.map((stock) =>
+            stock.symbol === symbolToUpdate
+                ? { ...stock, currentPrice: safePrice, lastUpdated: new Date().toISOString() }
+                : stock
+        );
+
+        setStockPicks(updatedPicks);
+        localStorage.setItem('stockPicks', JSON.stringify(updatedPicks));
+    };
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleAddStock();
@@ -337,6 +394,9 @@ const StockPicks = () => {
     };
 
     const getSourceLabel = (stock) => {
+        if (stock.isManual === true) {
+            return 'Manual';
+        }
         if (stock.isMock === true) {
             return 'Mock';
         }
@@ -497,7 +557,22 @@ const StockPicks = () => {
                                             <tr key={`stock-${stock.symbol}-${index}`}>
                                                 <th>{stock.symbol}</th>
                                                 <td>{stock.companyName}</td>
-                                                <td>{getFormattedCurrency(stock.currentPrice)}</td>
+                                                <td>
+                                                    {stock.isManual === true ? (
+                                                        <input
+                                                            type="number"
+                                                            className="form-control form-control-sm"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={Number.isFinite(stock.currentPrice) ? stock.currentPrice : ''}
+                                                            onChange={(e) => handlePriceUpdate(stock.symbol, e.target.value)}
+                                                            disabled={loading}
+                                                            placeholder="Enter price"
+                                                        />
+                                                    ) : (
+                                                        getFormattedCurrency(stock.currentPrice)
+                                                    )}
+                                                </td>
                                                 <td>{getFormattedCurrency(getFiftyTwoWeekHigh(stock))}</td>
                                                 <td>{getFormattedCurrency(getFiftyTwoWeekLow(stock))}</td>
                                                 <td>
@@ -514,7 +589,12 @@ const StockPicks = () => {
                                                 <td>{getFormattedCurrency(getMarketValue(stock))}</td>
                                                 <td>{getFormattedDate(stock.lastUpdated)}</td>
                                                 <td>
-                                                    <span className={`badge ${getSourceLabel(stock) === 'Live' ? 'bg-success' : getSourceLabel(stock) === 'Mock' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                                                    <span className={`badge ${
+                                                        getSourceLabel(stock) === 'Live' ? 'bg-success' : 
+                                                        getSourceLabel(stock) === 'Manual' ? 'bg-info' :
+                                                        getSourceLabel(stock) === 'Mock' ? 'bg-warning text-dark' : 
+                                                        'bg-secondary'
+                                                    }`}>
                                                         {getSourceLabel(stock)}
                                                     </span>
                                                 </td>
