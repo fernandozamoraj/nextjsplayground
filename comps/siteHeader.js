@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../styles/SiteHeader.module.css';
+import dailyQuotes from '../utils/data/dailyQuotes.json';
 
 const SiteHeader = () => {
   const [storageInfo, setStorageInfo] = useState({ usedBytes: 0, total: 5, percentage: '0' });
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const calculateStorageUsage = () => {
     let totalUsed = 0;
@@ -25,9 +27,28 @@ const SiteHeader = () => {
     return `${mb.toFixed(2)} MB`;
   };
 
+  const getDayOfYear = (date) => {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    return Math.floor(diff / oneDay);
+  };
+
+  const dayOfYear = getDayOfYear(currentTime);
+  const quoteIndex = (dayOfYear - 1) % dailyQuotes.length;
+  const todaysQuote = dailyQuotes[quoteIndex];
+  const formattedDateTime = `${currentTime.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })} • ${currentTime.toLocaleTimeString()}`;
+
   useEffect(() => {
     calculateStorageUsage();
-    const interval = setInterval(calculateStorageUsage, 1000);
+    const interval = setInterval(() => {
+      calculateStorageUsage();
+      setCurrentTime(new Date());
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -38,6 +59,12 @@ const SiteHeader = () => {
         <div className={styles.storageDisplay}>
           Storage: {formatStorageUsed(storageInfo.usedBytes)} / {storageInfo.total} MB ({storageInfo.percentage}%)
         </div>
+      </div>
+      <div className={styles.quoteBanner}>
+        <span className={styles.timeDisplay}>{formattedDateTime}</span>
+        <span className={styles.quoteText}>
+          Day {todaysQuote.day}: “{todaysQuote.quote}” — {todaysQuote.author}
+        </span>
       </div>
     </div>
   );
