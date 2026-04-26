@@ -22,9 +22,9 @@ export class Explosion {
     constructor(world, x, y, z, color, options = {}) {
         this._world   = world;
         this._alive   = true;
-        this._gravity = options.gravity ?? -0.016;
+        this._gravity = options.gravity ?? -0.006;
         this._fragments = [];
-        this._spawn(x, y, z, color, options.count ?? 22, options.speed ?? 0.12);
+        this._spawn(x, y, z, color, options.count ?? 35, options.speed ?? 0.22, options.size ?? 0.18);
     }
 
     // ---- private helpers ----
@@ -42,7 +42,7 @@ export class Explosion {
         return new Mesh(vertices, faces);
     }
 
-    _spawn(ox, oy, oz, color, count, maxSpeed) {
+    _spawn(ox, oy, oz, color, count, maxSpeed, baseSize) {
         for (let i = 0; i < count; i++) {
             // Spherical random direction, biased slightly upward
             const theta = Math.random() * Math.PI * 2;
@@ -50,10 +50,10 @@ export class Explosion {
             const speed = maxSpeed * (0.4 + Math.random() * 0.6);
 
             const vx = Math.sin(phi) * Math.cos(theta) * speed;
-            const vy = Math.abs(Math.cos(phi)) * speed + 0.04 + Math.random() * 0.06;
+            const vy = Math.abs(Math.cos(phi)) * speed + 0.06 + Math.random() * 0.08;
             const vz = Math.sin(phi) * Math.sin(theta) * speed;
 
-            const s    = 0.025 + Math.random() * 0.055;
+            const s    = baseSize * (0.5 + Math.random());
             const mesh = this._makeShard(ox, oy, oz, s);
 
             this._world.add(mesh, color);
