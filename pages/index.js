@@ -65,6 +65,13 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/dpsWaitTimes">
+            <a className={styles.card}>
+            <h2>Texas DPS Wait Times &rarr;</h2>
+            <p>Search cached driver license office wait times by location, distance, and service type</p>
+          </a>
+          </Link>
+
           <Link href="/students">
             <a className={styles.card}>
             <h2>Student Directory &rarr;</h2>
@@ -90,6 +97,13 @@ export default function Home() {
             <a className={styles.card}>
             <h2>Typing Game &rarr;</h2>
             <p>Type the falling words to score points</p>
+          </a>
+          </Link>
+
+          <Link href="/threeDeeDemo">
+            <a className={styles.card}>
+            <h2>3D Demo &rarr;</h2>
+            <p>Homebrewed 3D rendering engine using only JavaScript and the HTML canvas</p>
           </a>
           </Link>
 
