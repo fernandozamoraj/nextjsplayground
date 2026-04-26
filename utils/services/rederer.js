@@ -64,32 +64,33 @@ export class Renderer {
     }
 
     //translate a 3d point from world to camera space
-    worldToCamera(x, y, z ) {
+    worldToCamera(x, y, z) {
         let camX = x - this.camera.position.x;
         let camY = y - this.camera.position.y;
         let camZ = z - this.camera.position.z;
 
-        // Apply camera rotation (yaw, pitch, roll)
         const pitchRad = this.camera.rotation.pitch * Math.PI / 180;
-        const yawRad = this.camera.rotation.yaw * Math.PI / 180;
-        const rollRad = this.camera.rotation.roll * Math.PI / 180;
+        const yawRad   = this.camera.rotation.yaw   * Math.PI / 180;
+        const rollRad  = this.camera.rotation.roll  * Math.PI / 180;
 
         const cosPitch = Math.cos(pitchRad), sinPitch = Math.sin(pitchRad);
-        const cosYaw = Math.cos(yawRad), sinYaw = Math.sin(yawRad);
-        const cosRoll = Math.cos(rollRad), sinRoll = Math.sin(rollRad);
+        const cosYaw   = Math.cos(yawRad),   sinYaw   = Math.sin(yawRad);
+        const cosRoll  = Math.cos(rollRad),  sinRoll  = Math.sin(rollRad);
 
-        //Apply combined rotation matrix(y*x*z order)
-        const newX = camX * (cosYaw * cosRoll + sinYaw * sinPitch * sinRoll) +
-                     camY * (cosPitch * sinRoll) + 
-                     camZ * (sinYaw * cosRoll - cosYaw * sinPitch * sinRoll);
+        // View matrix: rows are the camera's right, up, and forward basis vectors
+        // expressed in world space (inverse = transpose of the camera orientation matrix).
+        // Yaw rotates around world Y, pitch tilts around the local X (right) axis.
+        //   right   = ( cosYaw,             0,       -sinYaw           )
+        //   up      = ( sinYaw*sinPitch,  cosPitch,   cosYaw*sinPitch   )
+        //   forward = ( sinYaw*cosPitch, -sinPitch,   cosYaw*cosPitch   )
+        const vx = camX * cosYaw                               - camZ * sinYaw;
+        const vy = camX * sinYaw * sinPitch + camY * cosPitch  + camZ * cosYaw * sinPitch;
+        const vz = camX * sinYaw * cosPitch - camY * sinPitch  + camZ * cosYaw * cosPitch;
 
-        const newY = camX * (-cosYaw * sinRoll + sinYaw * sinPitch * cosRoll) +
-                     camY * (cosPitch * cosRoll) +
-                     camZ * (sinYaw * sinRoll + cosYaw * sinPitch * cosRoll);
-
-        const newZ = camX * (sinYaw * cosPitch) +
-                     camY * (-sinPitch) +
-                     camZ * (cosYaw * cosPitch);
+        // Apply roll around the view Z axis
+        const newX =  vx * cosRoll - vy * sinRoll;
+        const newY =  vx * sinRoll + vy * cosRoll;
+        const newZ =  vz;
 
         return { x: newX, y: newY, z: newZ };
     } 
@@ -127,6 +128,29 @@ export class Renderer {
 
     _dot(a, b) {
         return a.x*b.x + a.y*b.y + a.z*b.z;
+    }
+
+    // Clip a polygon (in camera space) against the near plane z=near.
+    // Returns an array of camera-space vertices that are in front of the plane.
+    _clipFaceToNearPlane(camVerts, near = 0.1) {
+        const output = [];
+        const n = camVerts.length;
+        for (let i = 0; i < n; i++) {
+            const curr = camVerts[i];
+            const next = camVerts[(i + 1) % n];
+            const currIn = curr.z >= near;
+            const nextIn = next.z >= near;
+            if (currIn) output.push(curr);
+            if (currIn !== nextIn) {
+                const t = (near - curr.z) / (next.z - curr.z);
+                output.push({
+                    x: curr.x + t * (next.x - curr.x),
+                    y: curr.y + t * (next.y - curr.y),
+                    z: near
+                });
+            }
+        }
+        return output;
     }
 
     // Parse '#4af' or '#44aaff' and scale by brightness (0–1)
@@ -212,13 +236,21 @@ export class Renderer {
                     brightness = activeLight.ambient + (1.0 - activeLight.ambient) * diffuse * activeLight.intensity;
                 }
 
-                const projectedPoints = face.map(vertexIndex => {
-                    const vertex   = obj.vertices[vertexIndex];
-                    const camSpace = this.worldToCamera(vertex.x, vertex.y, vertex.z);
-                    return this.project3DTo2D(camSpace.x, camSpace.y, camSpace.z);
+                // Transform face vertices to camera space
+                const camVerts = face.map(vi => {
+                    const v = obj.vertices[vi];
+                    return this.worldToCamera(v.x, v.y, v.z);
                 });
 
-                if (projectedPoints.every(p => p !== null)) {
+                // Clip against near plane so straddling faces are partially drawn
+                const clipped = this._clipFaceToNearPlane(camVerts);
+                if (clipped.length < 3) return;
+
+                // Project clipped vertices to 2D
+                const projectedPoints = clipped.map(cv => this.project3DTo2D(cv.x, cv.y, cv.z));
+                if (projectedPoints.some(p => p === null)) return;
+
+                if (projectedPoints.length >= 3) {
                     this.ctx.beginPath();
                     this.ctx.moveTo(projectedPoints[0].x, projectedPoints[0].y);
                     for (let i = 1; i < projectedPoints.length; i++) {

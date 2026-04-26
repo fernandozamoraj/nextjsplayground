@@ -107,6 +107,13 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/shapeworld">
+            <a className={styles.card}>
+            <h2>Shape World &rarr;</h2>
+            <p>Walk around a 3D world of shapes in first-person using WASD and mouse look</p>
+          </a>
+          </Link>
+
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}
