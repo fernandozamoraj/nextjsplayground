@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import BackLink from '../comps/backLink';
-import { Renderer, Mesh, Light } from '../utils/services/rederer';
+import { Renderer, Mesh, Light } from '../utils/services/3DWorld/renderer';
 
 const ThreeDeeDemo = () => {
     const canvasRef = useRef(null);

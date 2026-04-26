@@ -1,4 +1,4 @@
-import { Renderer, Light } from './rederer';
+import { Renderer, Light } from './renderer';
 
 export class World {
     /**
