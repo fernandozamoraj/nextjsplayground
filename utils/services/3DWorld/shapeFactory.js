@@ -108,4 +108,42 @@ export class ShapeFactory {
         }
         return new Mesh(vertices, faces);
     }
+
+    bottle(cx, baseY, cz, scale = 1) {
+        const seg = 10;
+        const bodyR = 0.12 * scale;
+        const neckR = 0.045 * scale;
+        const bodyH = 0.38 * scale;
+        const neckH = 0.42 * scale;
+        const vertices = [];
+
+        const addRing = (y, r) => {
+            for (let i = 0; i < seg; i++) {
+                const a = (i / seg) * Math.PI * 2;
+                vertices.push({ x: cx + Math.cos(a) * r, y, z: cz + Math.sin(a) * r });
+            }
+        };
+
+        addRing(baseY,                    bodyR); // ring 0: body bottom
+        addRing(baseY + bodyH,            bodyR); // ring 1: body top
+        addRing(baseY + bodyH,            neckR); // ring 2: neck bottom (shoulder inset)
+        addRing(baseY + bodyH + neckH,    neckR); // ring 3: neck top
+        vertices.push({ x: cx, y: baseY,                 z: cz }); // 4*seg:   bottom cap center
+        vertices.push({ x: cx, y: baseY + bodyH + neckH, z: cz }); // 4*seg+1: top cap center
+
+        const bBot = 0, bTop = seg, nBot = 2 * seg, nTop = 3 * seg;
+        const capBot = 4 * seg, capTop = 4 * seg + 1;
+        const faces = [];
+
+        for (let i = 0; i < seg; i++) {
+            const j = (i + 1) % seg;
+            faces.push([bBot+i, bTop+i,  bTop+j]); faces.push([bBot+i, bTop+j,  bBot+j]); // body side
+            faces.push([bTop+i, nBot+i,  nBot+j]); faces.push([bTop+i, nBot+j,  bTop+j]); // shoulder
+            faces.push([nBot+i, nTop+i,  nTop+j]); faces.push([nBot+i, nTop+j,  nBot+j]); // neck side
+            faces.push([capBot, bBot+j,  bBot+i]);                                          // bottom cap
+            faces.push([capTop, nTop+i,  nTop+j]);                                          // top cap
+        }
+
+        return new Mesh(vertices, faces);
+    }
 }

@@ -75,8 +75,13 @@ export class World {
             this.renderer.clear();
         }
 
+        // Shadow layer: planar projections on ground, under all objects
+        this.renderer.renderShadows(objects.map(o => o.mesh), this.light.position);
+
         sorted.forEach(obj => {
             this.renderer.render(obj.mesh, false, obj.color, this.light);
         });
+
+        if (this._onAfterRender) this._onAfterRender(this.renderer.ctx);
     }
 }

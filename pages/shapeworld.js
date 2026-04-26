@@ -18,7 +18,7 @@ const ShapeWorld = () => {
             backgroundColor: '#87ceeb',
             focalLength: 800,
             cameraPosition: { x: 0, y: 0.6, z: -10 },
-            lightPosition:  { x: 5, y: 15,  z: -5  },
+            lightPosition:  { x: 60, y: 60,  z: -20  },
         });
 
         const controller = new FirstPersonController(world);

@@ -55,6 +55,7 @@ export class Renderer {
         this.focalLength = options.focalLength || 4000; // Distance from camera to projection plane
         this.camera = new Camera(0,0,0);
         this.options = options;
+        this._shadowCanvas = null; // offscreen canvas reused each frame for shadow compositing
     }
 
     //Set camera position and rotation
@@ -262,6 +263,58 @@ export class Renderer {
                 }
             });
         });
+    }
+
+    // Project a world-space vertex onto the ground plane (y=0) from the light.
+    // Returns null if the light is at or below the vertex (no downward shadow).
+    _projectToGround(vertex, lightPos) {
+        const { x: lx, y: ly, z: lz } = lightPos;
+        const { x: vx, y: vy, z: vz } = vertex;
+        const denom = ly - vy;
+        if (Math.abs(denom) < 0.0001) return null;
+        const t = ly / denom;
+        if (t <= 0) return null;
+        return { x: lx + t * (vx - lx), y: 0, z: lz + t * (vz - lz) };
+    }
+
+    // Render planar ground shadows for an array of Mesh objects from the given light position.
+    // All shadow polygons are drawn to an offscreen canvas (opaque) then composited at low opacity
+    // so overlapping triangles of the same object don't cause double-darkening.
+    renderShadows(meshes, lightPos) {
+        if (!meshes || meshes.length === 0) return;
+
+        if (!this._shadowCanvas) {
+            this._shadowCanvas = document.createElement('canvas');
+            this._shadowCanvas.width = this.width;
+            this._shadowCanvas.height = this.height;
+        }
+        const octx = this._shadowCanvas.getContext('2d');
+        octx.clearRect(0, 0, this.width, this.height);
+        octx.fillStyle = '#000000';
+
+        meshes.forEach(mesh => {
+            mesh.faces.forEach(face => {
+                const shadowVerts = face.map(vi => this._projectToGround(mesh.vertices[vi], lightPos));
+                if (shadowVerts.some(v => v === null)) return;
+
+                const camVerts = shadowVerts.map(v => this.worldToCamera(v.x, v.y, v.z));
+                const clipped = this._clipFaceToNearPlane(camVerts);
+                if (clipped.length < 3) return;
+
+                const pts = clipped.map(cv => this.project3DTo2D(cv.x, cv.y, cv.z));
+                if (pts.some(p => p === null)) return;
+
+                octx.beginPath();
+                octx.moveTo(pts[0].x, pts[0].y);
+                for (let i = 1; i < pts.length; i++) octx.lineTo(pts[i].x, pts[i].y);
+                octx.closePath();
+                octx.fill();
+            });
+        });
+
+        this.ctx.globalAlpha = 0.35;
+        this.ctx.drawImage(this._shadowCanvas, 0, 0);
+        this.ctx.globalAlpha = 1.0;
     }
 
     rotate(obj, dx = 0, dy = 0, dz = 0) {

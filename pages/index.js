@@ -114,6 +114,13 @@ export default function Home() {
           </a>
           </Link>
 
+          <Link href="/shooter">
+            <a className={styles.card}>
+            <h2>Shooter Game &rarr;</h2>
+            <p>Hunt down 8 spinning bottle targets scattered around a 3D world — track your time and shots</p>
+          </a>
+          </Link>
+
           <a
             href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
             className={styles.card}
