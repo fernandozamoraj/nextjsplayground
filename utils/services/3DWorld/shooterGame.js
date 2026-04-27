@@ -1,0 +1,379 @@
+import { Explosion } from './explosion';
+import { ImpactEffect } from './impactEffect';
+import { ShapeFactory } from './shapeFactory';
+
+export const TOTAL_TARGETS = 8;
+
+/**
+ * ShooterGame — encapsulates all game logic for the shooter page.
+ * Handles level building, target management, shooting, effects, and gun overlay.
+ *
+ * Usage:
+ *   const game = new ShooterGame(world, canvas, controller, { onScore, onGameOver });
+ *   game.build();   // populate world with level + targets
+ *   game.start();   // attach click handler + render hooks
+ *   // ... world.start() ...
+ *   game.stop();    // cleanup (call on unmount)
+ */
+export class ShooterGame {
+    /**
+     * @param {object} world        - World instance
+     * @param {HTMLCanvasElement} canvas
+     * @param {object} controller   - FirstPersonController instance
+     * @param {object} options
+     * @param {function} options.onScore    - called with new score (number) when a target is hit
+     * @param {function} options.onGameOver - called when all targets are eliminated
+     */
+    constructor(world, canvas, controller, { onScore, onGameOver }) {
+        this._world      = world;
+        this._canvas     = canvas;
+        this._controller = controller;
+        this._shapes     = new ShapeFactory();
+
+        this._onScore    = onScore;
+        this._onGameOver = onGameOver;
+
+        this._gameOver  = false;
+        this._score     = 0;
+        this._targets   = [];
+        this._boxMeshes = [];
+        this._explosions = [];
+        this._impacts    = [];
+        this._ladders    = [];
+        this._floors     = [];
+
+        this._handleShoot = this._handleShoot.bind(this);
+        this._shotAudio = null;
+        this._glassAudio = null;
+        this._boxHitAudio = null;
+    }
+
+    /** Populate the world: ground + level + targets. Call before start(). */
+    build() {
+        this._world.add(this._shapes.ground(50), '#ccc', true);
+        this._buildLevel();
+        this._buildTargets();
+        this._controller.setLadders(this._ladders);
+        this._controller.setFloors(this._floors);
+    }
+
+    /** Hook into world render loop and attach click listener. */
+    start() {
+        this._world._onBeforeRender = () => {
+            this._controller.update();
+            this._targets.forEach(t => { if (t.alive) this._rotateY(t.mesh, t.cx, t.cz, 1.5); });
+            this._explosions.forEach(e => e.update());
+            this._explosions = this._explosions.filter(e => e.alive);
+        };
+
+        this._world._onAfterRender = (ctx) => {
+            this._impacts.forEach(fx => fx.update(ctx));
+            this._impacts = this._impacts.filter(fx => fx.alive);
+            if (!this._gameOver) this._drawGun(ctx);
+        };
+
+        this._canvas.addEventListener('click', this._handleShoot);
+        this._shotAudio = new Audio('/sounds/shot.wav');
+        this._shotAudio.load();
+        this._glassAudio = new Audio('/sounds/glasshit.mp3');
+        this._glassAudio.load();
+        this._boxHitAudio = new Audio('/sounds/boxhit.wav');
+        this._boxHitAudio.load();
+    }
+
+    /** Remove event listeners. Call on unmount. */
+    stop() {
+        this._canvas.removeEventListener('click', this._handleShoot);
+    }
+
+    // ── Private: level ────────────────────────────────────────────────────────
+
+    _buildLevel() {
+        const cc = ['#8b6914', '#6b4a10', '#a0522d', '#cd853f', '#7b5426'];
+
+        const addCube = (cx, baseY, cz, ci = 0) => {
+            const m = this._shapes.box(cx, baseY, cz, 1, 1, 1);
+            this._world.add(m, cc[ci % cc.length]);
+            this._boxMeshes.push(m);
+        };
+
+        // addWall(wx, wz, w, d, h, ci) — wx/wz = min-x/min-z corner of the stack
+        const addWall = (wx, wz, w, d, h, ci = 0) => {
+            for (let ix = 0; ix < w; ix++)
+                for (let iz = 0; iz < d; iz++)
+                    for (let iy = 0; iy < h; iy++)
+                        addCube(wx + ix + 0.5, iy, wz + iz + 0.5, ci);
+            this._addLadder(wx + w / 2, wz, h);
+            this._floors.push({ minX: wx, maxX: wx + w, minZ: wz, maxZ: wz + d, topY: h });
+        };
+
+        // ── Entrance zone ──────────────────────────────────────────────────
+        addWall(-20,   0,  1, 1, 2, 0);  // left lone pillar   1×1×2
+        addWall( 18,   0,  1, 1, 2, 2);  // right lone pillar  1×1×2
+        addWall(-12, -14,  4, 1, 3, 1);  // left EW wall       4×1×3
+        addWall(  6, -14,  4, 1, 3, 3);  // right EW wall      4×1×3
+        addWall(-18, -22,  2, 1, 2, 4);  // left gap stack     2×1×2
+        addWall( 16, -22,  2, 1, 2, 0);  // right gap stack    2×1×2
+
+        // ── Zone 1 ────────────────────────────────────────────────────────
+        addWall(-18,  -8,  1, 4, 3, 2);  // long left NS wall  1×4×3
+        addWall( 18,  -8,  1, 4, 3, 4);  // long right NS wall 1×4×3
+        addWall( -6,  -6,  6, 1, 2, 0);  // center EW shelf    6×1×2
+        addWall( -4,  -6,  4, 1, 3, 1);  // staggered row      4×1×3
+        addWall(  6,  -8,  1, 1, 5, 3);  // tall skinny pillar 1×1×5
+        addWall(-10,  -8,  3, 2, 2, 2);  // left cluster       3×2×2
+        addWall( 12,  -4,  2, 3, 3, 4);  // right deep cluster 2×3×3
+        addWall( -2,  -4,  1, 1, 2, 1);  // lone center stack  1×1×2
+
+        // ── Zone 2 ────────────────────────────────────────────────────────
+        addWall(-20,   2,  3, 1, 2, 0);  // back-left short EW  3×1×2
+        addWall( 16,   2,  2, 1, 3, 3);  // back-right short    2×1×3
+        addWall( -8,   4,  8, 1, 2, 2);  // wide center EW wall 8×1×2
+        addWall( -6,   6,  6, 1, 3, 4);  // staggered row above 6×1×3
+        addWall( -4,   8,  4, 1, 2, 1);  // jagged top row      4×1×2
+        addWall(-14,   6,  1, 3, 4, 0);  // deep left tall      1×3×4
+        addWall( 14,   6,  2, 2, 4, 2);  // deep right cluster  2×2×4
+        addWall(  4,   6,  1, 4, 2, 3);  // center NS wall      1×4×2
+
+        // ── Zone 3 / back ─────────────────────────────────────────────────
+        addWall(-18,  12,  4, 1, 3, 1);  // back-left EW wall   4×1×3
+        addWall( 12,  12,  4, 1, 3, 4);  // back-right EW wall  4×1×3
+        addWall( -4,  10,  4, 2, 2, 0);  // back center cluster 4×2×2
+        addWall( -4,  16,  2, 1, 3, 2);  // jagged top stack    2×1×3
+
+        // ── Side corridor walls ───────────────────────────────────────────
+        addWall(-22,  -8,  1, 5, 2, 3);  // far-left side mid   1×5×2
+        addWall( 22,  -8,  1, 5, 2, 1);  // far-right side mid  1×5×2
+        addWall(-22,   4,  1, 4, 3, 0);  // far-left side deep  1×4×3
+        addWall( 22,   5,  1, 4, 3, 2);  // far-right side deep 1×4×3
+    }
+
+    _buildTargets() {
+        const defs = [
+            { x: -17, z: 20, color: '#22dd44' },
+            { x:  17, z: 19, color: '#dd2233' },
+            { x: -19, z:  4, color: '#2244dd' },
+            { x:  19, z:  5, color: '#ddaa22' },
+            { x:  11, z:  5, color: '#dd22dd' },
+            { x: -13, z:  8, color: '#22dddd' },
+            { x:  17, z:  9, color: '#dddd22' },
+            { x: -11, z: 11, color: '#dd6688' },
+        ];
+        this._targets = defs.map(def => {
+            const mesh = this._shapes.bottle(def.x, 1.2, def.z);
+            this._world.add(mesh, def.color);
+            return { mesh, alive: true, cx: def.x, cz: def.z, color: def.color };
+        });
+    }
+
+    _addLadder(lx, lz, h) {
+        const railColor = '#5C3A1E';
+        const rungColor = '#8B5A2B';
+        const fz = lz - 0.15; // flush against the wall face
+        // Two vertical rails
+        this._world.add(this._shapes.box(lx - 0.15, 0, fz, 0.06, h, 0.06), railColor);
+        this._world.add(this._shapes.box(lx + 0.15, 0, fz, 0.06, h, 0.06), railColor);
+        // Rungs every 0.25 units
+        for (let ry = 0.25; ry < h; ry += 0.25) {
+            this._world.add(this._shapes.box(lx, ry, fz, 0.36, 0.05, 0.06), rungColor);
+        }
+        this._ladders.push({ x: lx, z: fz, topY: h });
+    }
+
+    // ── Private: per-frame helpers ────────────────────────────────────────────
+
+    _rotateY(mesh, cx, cz, degrees) {
+        const rad = degrees * Math.PI / 180;
+        const cos = Math.cos(rad), sin = Math.sin(rad);
+        mesh.vertices = mesh.vertices.map(({ x, y, z }) => {
+            const lx = x - cx, lz = z - cz;
+            return { x: cx + lx * cos - lz * sin, y, z: cz + lx * sin + lz * cos };
+        });
+    }
+
+    // ── Private: shooting ─────────────────────────────────────────────────────
+
+    _handleShoot() {
+        if (document.pointerLockElement !== this._canvas) return;
+        if (this._shotAudio) {
+            this._shotAudio.currentTime = 0;
+            this._shotAudio.play().catch(() => {});
+        }
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+
+        // Check bottles first
+        let closest = null, closestDist = 22;
+        this._targets.forEach(t => {
+            if (!t.alive) return;
+            const center = this._world.renderer.getObjectCenter(t.mesh);
+            const cam  = this._world.renderer.worldToCamera(center.x, center.y, center.z);
+            if (cam.z <= 0) return;
+            const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+            if (!proj) return;
+            const dx = proj.x - cw / 2, dy = proj.y - ch / 2;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestDist) { closest = t; closestDist = dist; }
+        });
+
+        if (closest) {
+            const center = this._world.renderer.getObjectCenter(closest.mesh);
+            closest.alive = false;
+            this._world._objects = this._world._objects.filter(o => o.mesh !== closest.mesh);
+            this._explosions.push(new Explosion(this._world, center.x, center.y, center.z, closest.color));
+            if (this._glassAudio) { this._glassAudio.currentTime = 0; this._glassAudio.play().catch(() => {}); }
+            this._score++;
+            this._onScore(this._score);
+            if (this._score >= TOTAL_TARGETS) {
+                this._gameOver = true;
+                this._onGameOver();
+            }
+            return;
+        }
+
+        // Check boxes
+        let hitBoxDist = 80, hitBoxCenter = null;
+        this._boxMeshes.forEach(m => {
+            const center = this._world.renderer.getObjectCenter(m);
+            const cam  = this._world.renderer.worldToCamera(center.x, center.y, center.z);
+            if (cam.z <= 0) return;
+            const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+            if (!proj) return;
+            const dx = proj.x - cw / 2, dy = proj.y - ch / 2;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < hitBoxDist) { hitBoxDist = dist; hitBoxCenter = center; }
+        });
+        if (hitBoxCenter) {
+            this._impacts.push(new ImpactEffect(
+                hitBoxCenter.x, hitBoxCenter.y, hitBoxCenter.z,
+                this._world.renderer, '#8b4513'
+            ));
+            if (this._boxHitAudio) { this._boxHitAudio.currentTime = 0; this._boxHitAudio.play().catch(() => {}); }
+        }
+    }
+
+    // ── Private: gun overlay ──────────────────────────────────────────────────
+
+    _drawGun(ctx) {
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+
+        const tipX = cw / 2 + 8;
+        const tipY = ch / 2 + 190;
+        const endX = cw / 2 + 32;
+        const endY = ch * 0.75 + 170;
+
+        const splitT = 0.42;
+        const midX = tipX + (endX - tipX) * splitT;
+        const midY = tipY + (endY - tipY) * splitT;
+
+        const perpOf = (ax, ay, bx, by, r) => {
+            const dx = bx - ax, dy = by - ay;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            return { px: (-dy / len) * r, py: (dx / len) * r };
+        };
+
+        const drawCylinder = (ax, ay, ra, bx, by, rb, stops) => {
+            const { px, py } = perpOf(ax, ay, bx, by, 1);
+            const mx = (ax + bx) / 2, my = (ay + by) / 2;
+            const rMax = Math.max(ra, rb);
+            const g = ctx.createLinearGradient(
+                mx - px * rMax, my - py * rMax,
+                mx + px * rMax, my + py * rMax
+            );
+            stops.forEach(([t, c]) => g.addColorStop(t, c));
+            ctx.beginPath();
+            ctx.moveTo(ax + px * ra, ay + py * ra);
+            ctx.lineTo(bx + px * rb, by + py * rb);
+            ctx.lineTo(bx - px * rb, by - py * rb);
+            ctx.lineTo(ax - px * ra, ay - py * ra);
+            ctx.closePath();
+            ctx.fillStyle = g;
+            ctx.fill();
+        };
+
+        ctx.save();
+
+        // Barrel (tip → mid)
+        drawCylinder(tipX, tipY, 7, midX, midY, 13, [
+            [0, '#111'], [0.2, '#777'], [0.45, '#ccc'], [0.65, '#888'], [0.85, '#444'], [1, '#0d0d0d'],
+        ]);
+
+        // Gas block bump
+        const gbFrac = 0.52;
+        const gbX = tipX + (midX - tipX) * gbFrac;
+        const gbY = tipY + (midY - tipY) * gbFrac;
+        drawCylinder(gbX - 5, gbY - 5, 18, gbX + 5, gbY + 5, 18, [
+            [0, '#111'], [0.2, '#555'], [0.5, '#888'], [0.75, '#555'], [1, '#0d0d0d'],
+        ]);
+
+        // Picatinny top rail
+        const { px: rpx, py: rpy } = perpOf(tipX, tipY, midX, midY, 5);
+        ctx.beginPath();
+        ctx.moveTo(tipX + rpx, tipY + rpy);
+        ctx.lineTo(midX + rpx, midY + rpy);
+        ctx.lineTo(midX - rpx, midY - rpy);
+        ctx.lineTo(tipX - rpx, tipY - rpy);
+        ctx.closePath();
+        ctx.fillStyle = '#2a2a2a';
+        ctx.fill();
+        for (let i = 0; i <= 12; i++) {
+            const t = i / 12;
+            const rx = tipX + (midX - tipX) * t;
+            const ry = tipY + (midY - tipY) * t;
+            ctx.beginPath();
+            ctx.moveTo(rx + rpx, ry + rpy);
+            ctx.lineTo(rx - rpx, ry - rpy);
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        // Handguard (mid → end)
+        drawCylinder(midX, midY, 22, endX, endY, 28, [
+            [0, '#0d0d0d'], [0.15, '#444'], [0.45, '#777'], [0.7, '#444'], [0.9, '#222'], [1, '#0a0a0a'],
+        ]);
+
+        // M-LOK cutout slots
+        const { px: hpx, py: hpy } = perpOf(midX, midY, endX, endY, 1);
+        for (let i = 1; i <= 5; i++) {
+            const t = i / 6;
+            const sx = midX + (endX - midX) * t;
+            const sy = midY + (endY - midY) * t;
+            const slotW = 3.5;
+            // left slot
+            ctx.beginPath();
+            ctx.moveTo(sx + hpx * 10 - hpy * slotW, sy + hpy * 10 + hpx * slotW);
+            ctx.lineTo(sx + hpx * 14 - hpy * slotW, sy + hpy * 14 + hpx * slotW);
+            ctx.lineTo(sx + hpx * 14 + hpy * slotW, sy + hpy * 14 - hpx * slotW);
+            ctx.lineTo(sx + hpx * 10 + hpy * slotW, sy + hpy * 10 - hpx * slotW);
+            ctx.closePath();
+            ctx.fillStyle = '#060606';
+            ctx.fill();
+            // right slot
+            ctx.beginPath();
+            ctx.moveTo(sx - hpx * 10 - hpy * slotW, sy - hpy * 10 + hpx * slotW);
+            ctx.lineTo(sx - hpx * 14 - hpy * slotW, sy - hpy * 14 + hpx * slotW);
+            ctx.lineTo(sx - hpx * 14 + hpy * slotW, sy - hpy * 14 - hpx * slotW);
+            ctx.lineTo(sx - hpx * 10 + hpy * slotW, sy - hpy * 10 - hpx * slotW);
+            ctx.closePath();
+            ctx.fillStyle = '#060606';
+            ctx.fill();
+        }
+
+        // Muzzle cap
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 7.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#1c1c1c';
+        ctx.fill();
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+
+        ctx.restore();
+    }
+}

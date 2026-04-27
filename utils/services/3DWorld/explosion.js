@@ -24,7 +24,7 @@ export class Explosion {
         this._alive   = true;
         this._gravity = options.gravity ?? -0.006;
         this._fragments = [];
-        this._spawn(x, y, z, color, options.count ?? 35, options.speed ?? 0.22, options.size ?? 0.18);
+        this._spawn(x, y, z, color, options.count ?? 35, options.speed ?? 0.22, options.size ?? 0.045);
     }
 
     // ---- private helpers ----
