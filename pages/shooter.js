@@ -13,11 +13,13 @@ const ShooterPage = () => {
     const [gameOver, setGameOver] = useState(false);
     const [gameKey,  setGameKey]  = useState(0);
     const [onLadder, setOnLadder] = useState(false);
+    const [playerDead, setPlayerDead] = useState(false);
 
     const handleRestart = () => {
         setScore(0);
         setElapsed(0);
         setGameOver(false);
+        setPlayerDead(false);
         setGameKey(k => k + 1);
     };
 
@@ -45,6 +47,14 @@ const ShooterPage = () => {
                     setGameOver(true);
                     document.exitPointerLock();
                 }, 1800);
+            },
+            onPlayerHit: () => {},
+            onPlayerDead: () => {
+                clearInterval(timerRef.current);
+                gameOverRef.current = true;
+                setGameOver(true);
+                setPlayerDead(true);
+                document.exitPointerLock();
             },
         });
         game.build();
@@ -130,8 +140,8 @@ const ShooterPage = () => {
 
                 {gameOver && (
                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.72)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <h2 style={{ color: '#ffcc00', fontSize: '52px', margin: '0 0 16px', textShadow: '0 0 24px #ffcc00' }}>All Clear!</h2>
-                        <p style={{ color: '#fff', fontSize: '22px', margin: '0 0 8px' }}>All {TOTAL_TARGETS} targets eliminated</p>
+                        <h2 style={{ color: playerDead ? '#ff3333' : '#ffcc00', fontSize: '52px', margin: '0 0 16px', textShadow: playerDead ? '0 0 24px #ff3333' : '0 0 24px #ffcc00' }}>{playerDead ? 'You Died!' : 'All Clear!'}</h2>
+                        <p style={{ color: '#fff', fontSize: '22px', margin: '0 0 8px' }}>{playerDead ? 'The sniper orbs took you down.' : `All ${TOTAL_TARGETS} targets eliminated`}</p>
                         <p style={{ color: '#aaa', fontSize: '20px', margin: '0 0 28px' }}>Final time: {formatTime(elapsed)}</p>
                         <button
                             onClick={handleRestart}

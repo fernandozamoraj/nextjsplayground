@@ -2,7 +2,7 @@ import { Explosion } from './explosion';
 import { ImpactEffect } from './impactEffect';
 import { ShapeFactory } from './shapeFactory';
 
-export const TOTAL_TARGETS = 8;
+export const TOTAL_TARGETS = 13; // 8 bottles + 5 orbs
 
 /**
  * ShooterGame — encapsulates all game logic for the shooter page.
@@ -24,7 +24,7 @@ export class ShooterGame {
      * @param {function} options.onScore    - called with new score (number) when a target is hit
      * @param {function} options.onGameOver - called when all targets are eliminated
      */
-    constructor(world, canvas, controller, { onScore, onGameOver }) {
+    constructor(world, canvas, controller, { onScore, onGameOver, onPlayerHit, onPlayerDead }) {
         this._world      = world;
         this._canvas     = canvas;
         this._controller = controller;
@@ -47,6 +47,14 @@ export class ShooterGame {
         this._glassAudio = null;
         this._boxHitAudio = null;
         this._flashFrames = 0; // countdown frames for muzzle flash
+
+        this._orbs = [];
+        this._sniperOrbs = [];
+        this._playerHealth = 5;
+        this._dirChangeInterval = null;
+        this._sniperFireInterval = null;
+        this._onPlayerHit = onPlayerHit ?? null;
+        this._onPlayerDead = onPlayerDead ?? null;
     }
 
     /** Populate the world: ground + level + targets. Call before start(). */
@@ -54,6 +62,8 @@ export class ShooterGame {
         this._world.add(this._shapes.ground(50), '#ccc', true);
         this._buildLevel();
         this._buildTargets();
+        this._buildOrbs();
+        this._buildSniperOrbs();
         this._controller.setLadders(this._ladders);
         this._controller.setFloors(this._floors);
     }
@@ -65,17 +75,25 @@ export class ShooterGame {
             this._targets.forEach(t => { if (t.alive) this._rotateY(t.mesh, t.cx, t.cz, 1.5); });
             this._explosions.forEach(e => e.update());
             this._explosions = this._explosions.filter(e => e.alive);
+            this._updateOrbs();
+            this._updateSniperOrbs();
         };
+
+        this._dirChangeInterval = setInterval(() => this._randomizeOrbVelocities(), 3000);
+        this._sniperFireInterval = setInterval(() => this._fireSnipers(), 5000);
 
         this._world._onAfterRender = (ctx) => {
             this._impacts.forEach(fx => fx.update(ctx));
             this._impacts = this._impacts.filter(fx => fx.alive);
             if (!this._gameOver) this._drawTargetHints(ctx);
+            if (!this._gameOver) this._drawSniperOrbIndicators(ctx);
+            this._drawSniperOrbGlows(ctx);
             if (!this._gameOver) this._drawGun(ctx);
             if (this._flashFrames > 0) {
                 this._drawMuzzleFlash(ctx);
                 this._flashFrames--;
             }
+            this._drawHealthBar(ctx);
         };
 
         this._canvas.addEventListener('click', this._handleShoot);
@@ -90,6 +108,8 @@ export class ShooterGame {
     /** Remove event listeners. Call on unmount. */
     stop() {
         this._canvas.removeEventListener('click', this._handleShoot);
+        if (this._dirChangeInterval) clearInterval(this._dirChangeInterval);
+        if (this._sniperFireInterval) clearInterval(this._sniperFireInterval);
     }
 
     // ── Private: level ────────────────────────────────────────────────────────
@@ -172,6 +192,99 @@ export class ShooterGame {
         });
     }
 
+    _buildOrbs() {
+        const colors = ['#ff44ff', '#44ffff', '#ffff44', '#ff8844', '#88ff44'];
+        this._orbs = colors.map(color => {
+            const x = -18 + Math.random() * 36;
+            const y = 1.2 + Math.random() * 3.0;
+            const z = -18 + Math.random() * 34;
+            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
+            this._world.add(mesh, color);
+            const speed = 0.04 + Math.random() * 0.03;
+            const angle = Math.random() * Math.PI * 2;
+            return {
+                mesh, alive: true, color,
+                x, y, z,
+                vx: Math.cos(angle) * speed,
+                vy: (Math.random() - 0.5) * 0.02,
+                vz: Math.sin(angle) * speed,
+            };
+        });
+    }
+
+    _updateOrbs() {
+        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
+        this._orbs.forEach(orb => {
+            if (!orb.alive) return;
+            if (orb.x + orb.vx < minX || orb.x + orb.vx > maxX) orb.vx *= -1;
+            if (orb.y + orb.vy < minY || orb.y + orb.vy > maxY) orb.vy *= -1;
+            if (orb.z + orb.vz < minZ || orb.z + orb.vz > maxZ) orb.vz *= -1;
+            orb.x += orb.vx;
+            orb.y += orb.vy;
+            orb.z += orb.vz;
+            this._translateMesh(orb.mesh, orb.vx, orb.vy, orb.vz);
+        });
+    }
+
+    _randomizeOrbVelocities() {
+        [...this._orbs, ...this._sniperOrbs].forEach(orb => {
+            if (!orb.alive) return;
+            const speed = 0.04 + Math.random() * 0.03;
+            const angle = Math.random() * Math.PI * 2;
+            orb.vx = Math.cos(angle) * speed;
+            orb.vz = Math.sin(angle) * speed;
+            orb.vy = (Math.random() - 0.5) * 0.02;
+        });
+    }
+
+    _buildSniperOrbs() {
+        this._sniperOrbs = ['#ff1111', '#ff6600'].map(glowColor => {
+            const x = -15 + Math.random() * 30;
+            const y = 1.5 + Math.random() * 2.5;
+            const z = -15 + Math.random() * 30;
+            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
+            this._world.add(mesh, '#ffffff'); // white sphere
+            const speed = 0.03 + Math.random() * 0.02;
+            const angle = Math.random() * Math.PI * 2;
+            return {
+                mesh, alive: true, color: glowColor,
+                x, y, z,
+                vx: Math.cos(angle) * speed,
+                vy: (Math.random() - 0.5) * 0.015,
+                vz: Math.sin(angle) * speed,
+            };
+        });
+    }
+
+    _updateSniperOrbs() {
+        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive) return;
+            if (orb.x + orb.vx < minX || orb.x + orb.vx > maxX) orb.vx *= -1;
+            if (orb.y + orb.vy < minY || orb.y + orb.vy > maxY) orb.vy *= -1;
+            if (orb.z + orb.vz < minZ || orb.z + orb.vz > maxZ) orb.vz *= -1;
+            orb.x += orb.vx;
+            orb.y += orb.vy;
+            orb.z += orb.vz;
+            this._translateMesh(orb.mesh, orb.vx, orb.vy, orb.vz);
+        });
+    }
+
+    _fireSnipers() {
+        if (this._gameOver || this._playerHealth <= 0) return;
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive || this._playerHealth <= 0) return;
+            if (Math.random() < 0.5) {
+                this._playerHealth--;
+                if (this._onPlayerHit) this._onPlayerHit(this._playerHealth);
+                if (this._playerHealth <= 0) {
+                    this._gameOver = true;
+                    if (this._onPlayerDead) this._onPlayerDead();
+                }
+            }
+        });
+    }
+
     _addLadder(lx, lz, h) {
         const railColor = '#5C3A1E';
         const rungColor = '#8B5A2B';
@@ -195,6 +308,10 @@ export class ShooterGame {
             const lx = x - cx, lz = z - cz;
             return { x: cx + lx * cos - lz * sin, y, z: cz + lx * sin + lz * cos };
         });
+    }
+
+    _translateMesh(mesh, dx, dy, dz) {
+        mesh.vertices = mesh.vertices.map(({ x, y, z }) => ({ x: x + dx, y: y + dy, z: z + dz }));
     }
 
     // ── Private: shooting ─────────────────────────────────────────────────────
@@ -238,6 +355,52 @@ export class ShooterGame {
             return;
         }
 
+        // Check orbs
+        let closestOrb = null, closestOrbDist = 30;
+        this._orbs.forEach(orb => {
+            if (!orb.alive) return;
+            const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
+            if (cam.z <= 0) return;
+            const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+            if (!proj) return;
+            const dx = proj.x - cw / 2, dy = proj.y - ch / 2;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestOrbDist) { closestOrb = orb; closestOrbDist = dist; }
+        });
+        if (closestOrb) {
+            closestOrb.alive = false;
+            this._world._objects = this._world._objects.filter(o => o.mesh !== closestOrb.mesh);
+            this._explosions.push(new Explosion(this._world, closestOrb.x, closestOrb.y, closestOrb.z, closestOrb.color));
+            if (this._glassAudio) { this._glassAudio.currentTime = 0; this._glassAudio.play().catch(() => {}); }
+            this._score++;
+            this._onScore(this._score);
+            if (this._score >= TOTAL_TARGETS) {
+                this._gameOver = true;
+                this._onGameOver();
+            }
+            return;
+        }
+
+        // Check sniper orbs (killable, not scored)
+        let closestSniper = null, closestSniperDist = 30;
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive) return;
+            const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
+            if (cam.z <= 0) return;
+            const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+            if (!proj) return;
+            const dx = proj.x - cw / 2, dy = proj.y - ch / 2;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestSniperDist) { closestSniper = orb; closestSniperDist = dist; }
+        });
+        if (closestSniper) {
+            closestSniper.alive = false;
+            this._world._objects = this._world._objects.filter(o => o.mesh !== closestSniper.mesh);
+            this._explosions.push(new Explosion(this._world, closestSniper.x, closestSniper.y, closestSniper.z, closestSniper.color));
+            if (this._glassAudio) { this._glassAudio.currentTime = 0; this._glassAudio.play().catch(() => {}); }
+            return;
+        }
+
         // Check boxes
         let hitBoxDist = 80, hitBoxCenter = null;
         this._boxMeshes.forEach(m => {
@@ -268,10 +431,14 @@ export class ShooterGame {
         // Accumulate presence per edge: top=ahead, right=right, bottom=behind, left=left
         const edges = { top: 0, right: 0, bottom: 0, left: 0 };
 
-        this._targets.forEach(t => {
-            if (!t.alive) return;
-            const dx = t.cx - cam.position.x;
-            const dz = t.cz - cam.position.z;
+        const allTargets = [
+            ...this._targets.filter(t => t.alive).map(t => ({ x: t.cx, z: t.cz })),
+            ...this._orbs.filter(o => o.alive).map(o => ({ x: o.x, z: o.z })),
+        ];
+
+        allTargets.forEach(t => {
+            const dx = t.x - cam.position.x;
+            const dz = t.z - cam.position.z;
             // World angle to target (yaw=0 means facing +Z)
             let worldAngle = Math.atan2(dx, dz) * 180 / Math.PI;
             // Relative angle: positive = right, negative = left
@@ -280,10 +447,10 @@ export class ShooterGame {
             while (rel >  180) rel -= 360;
             while (rel < -180) rel += 360;
 
-            if (rel >= -45  && rel <  45)  edges.top    = 1;
-            else if (rel >= 45  && rel < 135)  edges.right  = 1;
-            else if (rel >= -135 && rel < -45)  edges.left   = 1;
-            else                               edges.bottom = 1;
+            if      (rel >= -45  && rel <   45) edges.top    = 1;
+            else if (rel >=  45  && rel <  135) edges.right  = 1;
+            else if (rel >= -135 && rel <  -45) edges.left   = 1;
+            else                                edges.bottom = 1;
         });
 
         const SIZE = 80; // gradient band thickness
@@ -317,6 +484,80 @@ export class ShooterGame {
             ctx.fillStyle = g;
             ctx.fillRect(0, 0, SIZE, ch);
         }
+    }
+
+    _drawSniperOrbGlows(ctx) {
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive) return;
+            const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
+            if (cam.z <= 0) return;
+            const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+            if (!proj) return;
+            const { x, y } = proj;
+            const g = ctx.createRadialGradient(x, y, 0, x, y, 28);
+            g.addColorStop(0,   'rgba(255,60,60,0.7)');
+            g.addColorStop(0.35,'rgba(255,0,0,0.4)');
+            g.addColorStop(1,   'rgba(255,0,0,0)');
+            ctx.beginPath();
+            ctx.arc(x, y, 28, 0, Math.PI * 2);
+            ctx.fillStyle = g;
+            ctx.fill();
+        });
+    }
+
+    _drawSniperOrbIndicators(ctx) {
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+        const cam = this._world.renderer.camera;
+        const yaw = cam.rotation.yaw;
+        const MARGIN = 22;
+        const TRI = 14;
+
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive) return;
+
+            const dx = orb.x - cam.position.x;
+            const dz = orb.z - cam.position.z;
+            let worldAngle = Math.atan2(dx, dz) * 180 / Math.PI;
+            let rel = worldAngle - yaw;
+            while (rel >  180) rel -= 360;
+            while (rel < -180) rel += 360;
+
+            // Screen direction: rel=0 → top, rel=90 → right, rel=±180 → bottom
+            const rad = rel * Math.PI / 180;
+            const sx = Math.sin(rad);
+            const sy = -Math.cos(rad);
+
+            // Intersection with inset screen boundary
+            const hw = cw / 2 - MARGIN;
+            const hh = ch / 2 - MARGIN;
+            const t = (Math.abs(sx) === 0) ? hh / Math.abs(sy)
+                    : (Math.abs(sy) === 0) ? hw / Math.abs(sx)
+                    : Math.min(hw / Math.abs(sx), hh / Math.abs(sy));
+            const ex = cw / 2 + sx * t;
+            const ey = ch / 2 + sy * t;
+
+            // Rotation: tip at (0, TRI) locally points in +y; rotate so it faces screen center
+            const rotation = Math.atan2(-sx, -sy);
+
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(rotation);
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ff2020';
+            ctx.beginPath();
+            ctx.moveTo(0, TRI);               // tip (points inward)
+            ctx.lineTo(-TRI * 0.65, -TRI * 0.5);  // base left
+            ctx.lineTo( TRI * 0.65, -TRI * 0.5);  // base right
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        });
     }
 
     // ── Private: gun overlay ──────────────────────────────────────────────────
@@ -487,6 +728,37 @@ export class ShooterGame {
         ctx.fillStyle = '#000';
         ctx.fill();
 
+        ctx.restore();
+    }
+
+    _drawHealthBar(ctx) {
+        if (this._gameOver) return;
+        const cw = this._canvas.width;
+        const SEG_W = 24, SEG_H = 16, GAP = 3;
+        const totalW = 5 * SEG_W + 4 * GAP;
+        const x = cw - totalW - 16;
+        const y = 16;
+
+        ctx.save();
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('HEALTH', x, y - 2);
+
+        for (let i = 0; i < 5; i++) {
+            const segX = x + i * (SEG_W + GAP);
+            const filled = i < this._playerHealth;
+            if (filled) {
+                if (this._playerHealth >= 3)      ctx.fillStyle = '#22dd44';
+                else if (this._playerHealth === 2) ctx.fillStyle = '#ddaa22';
+                else                               ctx.fillStyle = '#dd2222';
+            } else {
+                ctx.fillStyle = 'rgba(60,60,60,0.8)';
+            }
+            ctx.fillRect(segX, y, SEG_W, SEG_H);
+            ctx.strokeStyle = 'rgba(200,200,200,0.4)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(segX, y, SEG_W, SEG_H);
+        }
         ctx.restore();
     }
 }
