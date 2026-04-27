@@ -70,6 +70,7 @@ export class ShooterGame {
         this._world._onAfterRender = (ctx) => {
             this._impacts.forEach(fx => fx.update(ctx));
             this._impacts = this._impacts.filter(fx => fx.alive);
+            if (!this._gameOver) this._drawTargetHints(ctx);
             if (!this._gameOver) this._drawGun(ctx);
             if (this._flashFrames > 0) {
                 this._drawMuzzleFlash(ctx);
@@ -255,6 +256,66 @@ export class ShooterGame {
                 this._world.renderer, '#8b4513'
             ));
             if (this._boxHitAudio) { this._boxHitAudio.currentTime = 0; this._boxHitAudio.play().catch(() => {}); }
+        }
+    }
+
+    _drawTargetHints(ctx) {
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+        const cam = this._world.renderer.camera;
+        const yaw = cam.rotation.yaw;
+
+        // Accumulate presence per edge: top=ahead, right=right, bottom=behind, left=left
+        const edges = { top: 0, right: 0, bottom: 0, left: 0 };
+
+        this._targets.forEach(t => {
+            if (!t.alive) return;
+            const dx = t.cx - cam.position.x;
+            const dz = t.cz - cam.position.z;
+            // World angle to target (yaw=0 means facing +Z)
+            let worldAngle = Math.atan2(dx, dz) * 180 / Math.PI;
+            // Relative angle: positive = right, negative = left
+            let rel = worldAngle - yaw;
+            // Normalize to -180..180
+            while (rel >  180) rel -= 360;
+            while (rel < -180) rel += 360;
+
+            if (rel >= -45  && rel <  45)  edges.top    = 1;
+            else if (rel >= 45  && rel < 135)  edges.right  = 1;
+            else if (rel >= -135 && rel < -45)  edges.left   = 1;
+            else                               edges.bottom = 1;
+        });
+
+        const SIZE = 80; // gradient band thickness
+        const COLOR = 'rgba(220,30,30,';
+
+        if (edges.top) {
+            const g = ctx.createLinearGradient(0, 0, 0, SIZE);
+            g.addColorStop(0,   COLOR + '0.45)');
+            g.addColorStop(1,   COLOR + '0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, cw, SIZE);
+        }
+        if (edges.bottom) {
+            const g = ctx.createLinearGradient(0, ch, 0, ch - SIZE);
+            g.addColorStop(0,   COLOR + '0.45)');
+            g.addColorStop(1,   COLOR + '0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, ch - SIZE, cw, SIZE);
+        }
+        if (edges.right) {
+            const g = ctx.createLinearGradient(cw, 0, cw - SIZE, 0);
+            g.addColorStop(0,   COLOR + '0.45)');
+            g.addColorStop(1,   COLOR + '0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(cw - SIZE, 0, SIZE, ch);
+        }
+        if (edges.left) {
+            const g = ctx.createLinearGradient(0, 0, SIZE, 0);
+            g.addColorStop(0,   COLOR + '0.45)');
+            g.addColorStop(1,   COLOR + '0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, SIZE, ch);
         }
     }
 
