@@ -50,11 +50,16 @@ const ShooterPage = () => {
         game.build();
         game.start();
 
-        // Poll ladder state each frame for HUD
+        // Poll ladder state each frame for HUD — only update React state on change
         const prevOnBeforeRender = world._onBeforeRender;
+        let lastOnLadder = false;
         world._onBeforeRender = () => {
             if (prevOnBeforeRender) prevOnBeforeRender();
-            setOnLadder(controller.onLadder);
+            const cur = controller.onLadder;
+            if (cur !== lastOnLadder) {
+                lastOnLadder = cur;
+                setOnLadder(cur);
+            }
         };
 
         const startTime = Date.now();

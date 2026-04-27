@@ -46,6 +46,7 @@ export class ShooterGame {
         this._shotAudio = null;
         this._glassAudio = null;
         this._boxHitAudio = null;
+        this._flashFrames = 0; // countdown frames for muzzle flash
     }
 
     /** Populate the world: ground + level + targets. Call before start(). */
@@ -70,6 +71,10 @@ export class ShooterGame {
             this._impacts.forEach(fx => fx.update(ctx));
             this._impacts = this._impacts.filter(fx => fx.alive);
             if (!this._gameOver) this._drawGun(ctx);
+            if (this._flashFrames > 0) {
+                this._drawMuzzleFlash(ctx);
+                this._flashFrames--;
+            }
         };
 
         this._canvas.addEventListener('click', this._handleShoot);
@@ -199,6 +204,7 @@ export class ShooterGame {
             this._shotAudio.currentTime = 0;
             this._shotAudio.play().catch(() => {});
         }
+        this._flashFrames = 4; // show flash for 4 frames (~66ms)
         const cw = this._canvas.width;
         const ch = this._canvas.height;
 
@@ -253,6 +259,52 @@ export class ShooterGame {
     }
 
     // ── Private: gun overlay ──────────────────────────────────────────────────
+
+    _drawMuzzleFlash(ctx) {
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+        const tipX = cw / 2 + 8;
+        const tipY = ch / 2 + 190;
+        const alpha = this._flashFrames / 4; // fade out as frames count down
+
+        // Outer glow bloom
+        const bloom = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 38);
+        bloom.addColorStop(0,   `rgba(255,240,160,${alpha * 0.9})`);
+        bloom.addColorStop(0.3, `rgba(255,160,40,${alpha * 0.6})`);
+        bloom.addColorStop(1,   `rgba(255,80,0,0)`);
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 38, 0, Math.PI * 2);
+        ctx.fillStyle = bloom;
+        ctx.fill();
+
+        // Bright core
+        const core = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 12);
+        core.addColorStop(0,   `rgba(255,255,220,${alpha})`);
+        core.addColorStop(0.5, `rgba(255,220,80,${alpha * 0.8})`);
+        core.addColorStop(1,   `rgba(255,120,0,0)`);
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = core;
+        ctx.fill();
+
+        // 4 spiky rays
+        ctx.save();
+        ctx.translate(tipX, tipY);
+        ctx.globalAlpha = alpha * 0.7;
+        for (let i = 0; i < 4; i++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-3, 28);
+            ctx.lineTo(0, 44);
+            ctx.lineTo(3, 28);
+            ctx.closePath();
+            ctx.fillStyle = '#ffdd44';
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
 
     _drawGun(ctx) {
         const cw = this._canvas.width;
