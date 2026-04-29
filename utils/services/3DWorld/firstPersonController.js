@@ -1,14 +1,24 @@
 /**
  * FirstPersonController
  *
- * Attaches keyboard and mouse-pointer-lock controls to a World's camera.
- * Controls:
- *   W / S       — move forward / back
- *   A / D       — strafe left / right
- *   Q / E       — move up / down
- *   Shift       — hold to sprint (2.5× speed)
- *   Mouse       — click canvas to lock pointer; move mouse to look
- *   Esc         — release pointer lock
+ * Attaches keyboard + mouse (pointer-lock) controls, and Xbox controller
+ * (Gamepad API) controls to a World's camera.
+ *
+ * Keyboard / Mouse:
+ *   W / S            — forward / back
+ *   A / D            — strafe left / right
+ *   Shift            — sprint (2.5×)
+ *   Mouse look       — click canvas to lock pointer, then move mouse
+ *   Esc              — release pointer lock
+ *
+ * Xbox 360 Controller (standard mapping):
+ *   Left stick       — move (forward / back / strafe)
+ *   Right stick      — look (yaw / pitch)
+ *   LB (button 4)    — sprint
+ *   RT (button 7)    — shoot  (exposed via this.shootTriggered)
+ *
+ * When a gamepad is connected it takes control; keyboard/mouse continue
+ * to work simultaneously.
  */
 export class FirstPersonController {
     /**
@@ -21,14 +31,27 @@ export class FirstPersonController {
      */
     constructor(world, options = {}) {
         this.camera          = world.camera;
-        this.moveSpeed       = options.moveSpeed       ?? 0.08;
-        this.mouseSensitivity = options.mouseSensitivity ?? 0.25;
-        this.minPitch        = options.minPitch        ?? -80;
-        this.maxPitch        = options.maxPitch        ??  80;
+        this.moveSpeed              = options.moveSpeed              ?? 0.08;
+        this.mouseSensitivity        = options.mouseSensitivity        ?? 0.25;
+        this.gamepadLookSensitivity  = options.gamepadLookSensitivity  ?? 2.5;
+        this.minPitch                = options.minPitch                ?? -80;
+        this.maxPitch                = options.maxPitch                ??  80;
 
         this._keys          = new Set();
+        this._gpSynthKeys   = new Set();   // keys injected by gamepad this frame
         this._pointerLocked = false;
         this._canvas        = null;
+
+        // Gamepad state
+        this._usingGamepad  = false;
+        this.gamepadConnected = false;     // true once browser exposes the gamepad
+        this.shootTriggered  = false;      // true for one frame when RT pressed
+        this.reloadTriggered = false;      // true for one frame when X pressed
+        this._prevRtPressed  = false;
+        this._prevXPressed   = false;
+
+        this._onGamepadConnected    = this._onGamepadConnected.bind(this);
+        this._onGamepadDisconnected = this._onGamepadDisconnected.bind(this);
 
         // Footstep sound
         this._stepAudio     = new Audio('/sounds/step.wav');
@@ -60,18 +83,22 @@ export class FirstPersonController {
     attach(canvas) {
         this._canvas  = canvas;
         this._groundY = this.camera.position.y; // snapshot floor-level camera Y
-        window.addEventListener('keydown',         this._onKeyDown);
-        window.addEventListener('keyup',           this._onKeyUp);
-        document.addEventListener('mousemove',     this._onMouseMove);
+        window.addEventListener('keydown',             this._onKeyDown);
+        window.addEventListener('keyup',               this._onKeyUp);
+        window.addEventListener('gamepadconnected',    this._onGamepadConnected);
+        window.addEventListener('gamepaddisconnected', this._onGamepadDisconnected);
+        document.addEventListener('mousemove',         this._onMouseMove);
         document.addEventListener('pointerlockchange', this._onPointerLockChange);
-        canvas.addEventListener('click',           this._onCanvasClick);
+        canvas.addEventListener('click',               this._onCanvasClick);
     }
 
     /** Remove all event listeners. Call on unmount. */
     detach() {
-        window.removeEventListener('keydown',         this._onKeyDown);
-        window.removeEventListener('keyup',           this._onKeyUp);
-        document.removeEventListener('mousemove',     this._onMouseMove);
+        window.removeEventListener('keydown',             this._onKeyDown);
+        window.removeEventListener('keyup',               this._onKeyUp);
+        window.removeEventListener('gamepadconnected',    this._onGamepadConnected);
+        window.removeEventListener('gamepaddisconnected', this._onGamepadDisconnected);
+        document.removeEventListener('mousemove',         this._onMouseMove);
         document.removeEventListener('pointerlockchange', this._onPointerLockChange);
         if (this._canvas) {
             this._canvas.removeEventListener('click', this._onCanvasClick);
@@ -98,6 +125,10 @@ export class FirstPersonController {
      * Call this once per animation frame (before rendering).
      */
     update() {
+        this.shootTriggered  = false;
+        this.reloadTriggered = false;
+        this._pollGamepad();
+
         const k = this._keys;
         const sprinting = k.has('shift');
         const speed = this.moveSpeed * (sprinting ? 2.5 : 1);
@@ -187,9 +218,10 @@ export class FirstPersonController {
             }
         }
 
-        // Footstep audio — silent while on a ladder
+        // Footstep audio — silent while on a ladder.
+        // Allow footsteps when pointer-locked (mouse) OR when gamepad is active.
         const interval = sprinting ? 19 : 26;
-        if (movingHoriz && this._pointerLocked && !activeLadder) {
+        if (movingHoriz && (this._pointerLocked || this._usingGamepad) && !activeLadder) {
             this._stepTimer++;
             if (this._stepTimer >= interval) {
                 this._stepTimer = 0;
@@ -210,6 +242,77 @@ export class FirstPersonController {
             this._stepTimer = interval;
         }
     }
+
+    // ── Gamepad polling ──────────────────────────────────────────────────────
+
+    _pollGamepad() {
+        // Remove keys that were injected by the gamepad last frame
+        this._gpSynthKeys.forEach(k => this._keys.delete(k));
+        this._gpSynthKeys.clear();
+
+        const gamepads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
+        const gp = gamepads.find(g => g && g.connected) ?? null;
+
+        if (!gp) {
+            this._usingGamepad = false;
+            this._prevRtPressed = false;
+            return;
+        }
+        this._usingGamepad    = true;
+        this.gamepadConnected = true; // confirm once polled successfully
+
+        const DEAD = 0.15;
+        const ax = v => (Math.abs(v) > DEAD ? v : 0);
+
+        const leftX  = ax(gp.axes[0] ?? 0);
+        const leftY  = ax(gp.axes[1] ?? 0);
+        const rightX = ax(gp.axes[2] ?? 0);
+        const rightY = ax(gp.axes[3] ?? 0);
+
+        // Synthesize movement keys from left stick
+        const addKey = key => { this._keys.add(key); this._gpSynthKeys.add(key); };
+        if (leftY < 0) addKey('w');
+        if (leftY > 0) addKey('s');
+        if (leftX < 0) addKey('a');
+        if (leftX > 0) addKey('d');
+
+        // LB (button 4) = sprint
+        if (gp.buttons[4]?.pressed) addKey('shift');
+
+        // Right stick — look (works without pointer lock when gamepad is active)
+        const sens = this.gamepadLookSensitivity;
+        this.camera.rotation.yaw += rightX * sens;
+        this.camera.rotation.pitch = Math.max(
+            this.minPitch,
+            Math.min(this.maxPitch, this.camera.rotation.pitch + rightY * sens)
+        );
+
+        // RT (button 7) — shoot, rising-edge only
+        const rtNow = gp.buttons[7]?.pressed ?? false;
+        if (rtNow && !this._prevRtPressed) this.shootTriggered = true;
+        this._prevRtPressed = rtNow;
+
+        // X button (button 2) — reload, rising-edge only
+        const xNow = gp.buttons[2]?.pressed ?? false;
+        if (xNow && !this._prevXPressed) this.reloadTriggered = true;
+        this._prevXPressed = xNow;
+    }
+
+    // ── Gamepad connection handlers ──────────────────────────────────────────
+
+    _onGamepadConnected(e) {
+        if (e.gamepad && e.gamepad.connected) {
+            this.gamepadConnected = true;
+        }
+    }
+
+    _onGamepadDisconnected() {
+        this.gamepadConnected = false;
+        this._usingGamepad    = false;
+        this._prevRtPressed   = false;
+    }
+
+    // ── Keyboard handlers ────────────────────────────────────────────────────
 
     _onKeyDown(e) {
         const key = e.key === 'Shift' ? 'shift' : e.key.toLowerCase();

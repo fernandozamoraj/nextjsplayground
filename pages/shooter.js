@@ -14,6 +14,7 @@ const ShooterPage = () => {
     const [gameKey,  setGameKey]  = useState(0);
     const [onLadder, setOnLadder] = useState(false);
     const [playerDead, setPlayerDead] = useState(false);
+    const [gamepadActive, setGamepadActive] = useState(false);
 
     const handleRestart = () => {
         setScore(0);
@@ -63,12 +64,18 @@ const ShooterPage = () => {
         // Poll ladder state each frame for HUD — only update React state on change
         const prevOnBeforeRender = world._onBeforeRender;
         let lastOnLadder = false;
+        let lastGamepad  = false;
         world._onBeforeRender = () => {
             if (prevOnBeforeRender) prevOnBeforeRender();
             const cur = controller.onLadder;
             if (cur !== lastOnLadder) {
                 lastOnLadder = cur;
                 setOnLadder(cur);
+            }
+            const gp = controller._usingGamepad;
+            if (gp !== lastGamepad) {
+                lastGamepad = gp;
+                setGamepadActive(gp);
             }
         };
 
@@ -104,6 +111,10 @@ const ShooterPage = () => {
                     <li><span style={{ color: '#ff4444' }}>Aim</span> with the mouse — <span style={{ color: '#ff4444' }}>click</span> to shoot a target in your crosshair</li>
                     <li><span style={{ color: '#ff4444' }}>Move:</span> W / A / S / D &nbsp;|&nbsp; <span style={{ color: '#ff4444' }}>Sprint:</span> hold <kbd style={{ background: '#440000', color: '#ff4444', padding: '1px 6px', borderRadius: '3px', border: '1px solid #ff4444' }}>Shift</kbd></li>
                     <li><span style={{ color: '#ff4444' }}>Release mouse:</span> press <kbd style={{ background: '#440000', color: '#ff4444', padding: '1px 6px', borderRadius: '3px', border: '1px solid #ff4444' }}>Esc</kbd></li>
+                    <li style={{ marginTop: '4px', borderTop: '1px solid #550000', paddingTop: '4px' }}>
+                        <span style={{ color: '#ff4444' }}>Xbox controller:</span> Left stick move · Right stick look · <span style={{ color: '#ff4444' }}>LB</span> sprint · <span style={{ color: '#ff4444' }}>RT</span> shoot
+                        &nbsp;— <em style={{ color: '#ff8888' }}>press any button to activate</em>
+                    </li>
                 </ul>
             </div>
 
@@ -118,6 +129,10 @@ const ShooterPage = () => {
                 <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.65)', padding: '8px 18px', borderRadius: '8px', color: '#fff', fontFamily: 'monospace', fontSize: '20px', lineHeight: '1.7', border: '1px solid #555' }}>
                     <div>🎯 {score} / {TOTAL_TARGETS}</div>
                     <div>⏱ {formatTime(elapsed)}</div>
+                    {gamepadActive
+                        ? <div style={{ fontSize: '13px', color: '#7fff7f', marginTop: '4px' }}>🎮 Controller active</div>
+                        : <div style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>🎮 No controller</div>
+                    }
                 </div>
 
                 {!gameOver && onLadder && (
