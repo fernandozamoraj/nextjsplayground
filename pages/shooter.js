@@ -139,7 +139,8 @@ const ShooterPage = () => {
                 </ul>
             </div>
 
-            <div style={{ position: 'relative', display: 'inline-block', marginLeft: '50%', transform: 'translateX(-50%)' }}>
+            <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', textAlign: 'center' }}>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
                 <canvas
                     ref={canvasRef}
                     width={1100}
@@ -197,8 +198,4 @@ const ShooterPage = () => {
                     </div>
                 )}
             </div>
-        </div>
-    );
-};
-
-export default ShooterPage;
+            </div>
