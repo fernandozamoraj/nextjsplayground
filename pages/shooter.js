@@ -199,3 +199,8 @@ const ShooterPage = () => {
                 )}
             </div>
             </div>
+        </div>
+    );
+};
+
+export default ShooterPage;

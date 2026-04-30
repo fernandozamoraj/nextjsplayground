@@ -146,7 +146,7 @@ export function VirtualJoystick({ onLeftStick, onRightStick, onFire, onReload })
             {/* ── Left stick: movement ── */}
             <Stick
                 onChange={onLeftStick}
-                style={{ position: 'absolute', bottom: 22, left: 22, pointerEvents: 'auto' }}
+                style={{ position: 'absolute', bottom: 22, left: 52, pointerEvents: 'auto' }}
             />
 
             {/* ── Right stick: look ── */}
