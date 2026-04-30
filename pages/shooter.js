@@ -18,6 +18,7 @@ const ShooterPage = () => {
     const [playerDead,   setPlayerDead]  = useState(false);
     const [gamepadActive,setGamepadActive] = useState(false);
     const [showVirtual,  setShowVirtual] = useState(false);
+    const [mobileScale,  setMobileScale]  = useState(1);
 
     // Stable callbacks for VirtualJoystick — safe to pass as props
     const onLeftStick  = useCallback((x, y) => controllerRef.current?.setVirtualLeft(x, y),  []);
@@ -25,11 +26,17 @@ const ShooterPage = () => {
     const onVirtualFire   = useCallback(() => controllerRef.current?.triggerVirtualFire(),   []);
     const onVirtualReload = useCallback(() => controllerRef.current?.triggerVirtualReload(), []);
 
-    // Detect touch device once on mount
+    // Detect touch device; on mobile compute scale so canvas fills viewport
     useEffect(() => {
-        if (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
-            setShowVirtual(true);
-        }
+        if (typeof window === 'undefined') return;
+        if (!('ontouchstart' in window) && navigator.maxTouchPoints <= 0) return;
+        setShowVirtual(true);
+        const updateScale = () => {
+            setMobileScale(Math.min(window.innerWidth / 1100, window.innerHeight / 600));
+        };
+        updateScale();
+        window.addEventListener('resize', updateScale);
+        return () => window.removeEventListener('resize', updateScale);
     }, []);
 
     const handleRestart = () => {
@@ -118,11 +125,13 @@ const ShooterPage = () => {
         `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
     return (
-        <div style={{ background: '#111', minHeight: '100vh', padding: '20px' }}>
-            <BackLink />
-            <h1 style={{ color: '#ccc', textAlign: 'center', marginBottom: '8px' }}>Shooter Game</h1>
+        <div style={showVirtual
+            ? { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#111', overflow: 'hidden' }
+            : { background: '#111', minHeight: '100vh', padding: '20px' }}>
+            {!showVirtual && <BackLink />}
+            {!showVirtual && <h1 style={{ color: '#ccc', textAlign: 'center', marginBottom: '8px' }}>Shooter Game</h1>}
 
-            <div style={{ maxWidth: '700px', margin: '0 auto 14px', background: '#1a0000', border: '2px solid #cc0000', borderRadius: '8px', padding: '10px 20px' }}>
+            {!showVirtual && <div style={{ maxWidth: '700px', margin: '0 auto 14px', background: '#1a0000', border: '2px solid #cc0000', borderRadius: '8px', padding: '10px 20px' }}>
                 <p style={{ color: '#ff4444', fontWeight: 'bold', margin: '0 0 4px', fontSize: '15px', textAlign: 'center' }}>Controls</p>
                 <ul style={{ color: '#ff6666', fontWeight: 'bold', margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.8' }}>
                     <li><span style={{ color: '#ff4444' }}>Click canvas</span> to lock mouse and enter the world</li>
@@ -137,9 +146,11 @@ const ShooterPage = () => {
                         <span style={{ color: '#ff4444' }}>Touch:</span> Left stick — move · Right stick — look · <span style={{ color: '#ff4444' }}>FIRE</span> button · <span style={{ color: '#ff4444' }}>X</span> reload
                     </li>
                 </ul>
-            </div>
+            </div>}
 
-            <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', textAlign: 'center' }}>
+            <div style={showVirtual
+                ? { position: 'absolute', top: '50%', left: '50%', transform: `translate(-50%,-50%) scale(${mobileScale})`, transformOrigin: 'center center' }
+                : { width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block' }}>
                 <canvas
                     ref={canvasRef}
