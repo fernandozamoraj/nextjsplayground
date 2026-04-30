@@ -1,5 +1,6 @@
 import { Explosion } from './explosion';
 import { ImpactEffect } from './impactEffect';
+import { SmokeEffect } from './smokeEffect';
 import { ShapeFactory } from './shapeFactory';
 
 export const TOTAL_TARGETS = 13; // 8 bottles + 5 orbs
@@ -39,6 +40,7 @@ export class ShooterGame {
         this._boxMeshes = [];
         this._explosions = [];
         this._impacts    = [];
+        this._smokes     = [];
         this._ladders    = [];
         this._floors     = [];
 
@@ -111,6 +113,8 @@ export class ShooterGame {
         this._world._onAfterRender = (ctx) => {
             this._impacts.forEach(fx => fx.update(ctx));
             this._impacts = this._impacts.filter(fx => fx.alive);
+            this._smokes.forEach(fx => fx.update(ctx));
+            this._smokes = this._smokes.filter(fx => fx.alive);
             if (!this._gameOver) this._drawTargetHints(ctx);
             if (!this._gameOver) this._drawSniperOrbIndicators(ctx);
             this._drawSniperOrbGlows(ctx);
@@ -487,6 +491,7 @@ export class ShooterGame {
             closestOrb.alive = false;
             this._world._objects = this._world._objects.filter(o => o.mesh !== closestOrb.mesh);
             this._explosions.push(new Explosion(this._world, closestOrb.x, closestOrb.y, closestOrb.z, closestOrb.color));
+            this._smokes.push(new SmokeEffect(closestOrb.x, closestOrb.y, closestOrb.z, this._world.renderer, { tint: closestOrb.color }));
             if (this._glassAudio) { this._glassAudio.currentTime = 0; this._glassAudio.play().catch(() => {}); }
             this._score++;
             this._onScore(this._score);
@@ -515,6 +520,7 @@ export class ShooterGame {
             closestSniper.alive = false;
             this._world._objects = this._world._objects.filter(o => o.mesh !== closestSniper.mesh);
             this._explosions.push(new Explosion(this._world, closestSniper.x, closestSniper.y, closestSniper.z, closestSniper.color));
+            this._smokes.push(new SmokeEffect(closestSniper.x, closestSniper.y, closestSniper.z, this._world.renderer, { tint: closestSniper.color, count: 24 }));
             if (this._glassAudio) { this._glassAudio.currentTime = 0; this._glassAudio.play().catch(() => {}); }
             return;
         }
