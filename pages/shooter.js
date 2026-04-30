@@ -128,6 +128,9 @@ const ShooterPage = () => {
         <div style={showVirtual
             ? { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#111', overflow: 'hidden' }
             : { background: '#111', minHeight: '100vh', padding: '20px' }}>
+            {showVirtual && (
+                <style>{`[class*="SiteHeader_header"] { display: none !important; }`}</style>
+            )}
             {!showVirtual && <BackLink />}
             {!showVirtual && <h1 style={{ color: '#ccc', textAlign: 'center', marginBottom: '8px' }}>Shooter Game</h1>}
 
