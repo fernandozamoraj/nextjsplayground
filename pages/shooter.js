@@ -1,20 +1,36 @@
-﻿import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState, useCallback } from 'react';
 import BackLink from '../comps/backLink';
 import { World } from '../utils/services/3DWorld/world';
 import { FirstPersonController } from '../utils/services/3DWorld/firstPersonController';
 import { ShooterGame, TOTAL_TARGETS } from '../utils/services/3DWorld/shooterGame';
+import { VirtualJoystick } from '../comps/shooter/VirtualJoystick';
 
 const ShooterPage = () => {
-    const canvasRef  = useRef(null);
-    const gameOverRef = useRef(false);
-    const timerRef   = useRef(null);
-    const [score,   setScore]   = useState(0);
-    const [elapsed, setElapsed] = useState(0);
-    const [gameOver, setGameOver] = useState(false);
-    const [gameKey,  setGameKey]  = useState(0);
-    const [onLadder, setOnLadder] = useState(false);
-    const [playerDead, setPlayerDead] = useState(false);
-    const [gamepadActive, setGamepadActive] = useState(false);
+    const canvasRef     = useRef(null);
+    const gameOverRef   = useRef(false);
+    const timerRef      = useRef(null);
+    const controllerRef = useRef(null);
+    const [score,        setScore]       = useState(0);
+    const [elapsed,      setElapsed]     = useState(0);
+    const [gameOver,     setGameOver]    = useState(false);
+    const [gameKey,      setGameKey]     = useState(0);
+    const [onLadder,     setOnLadder]    = useState(false);
+    const [playerDead,   setPlayerDead]  = useState(false);
+    const [gamepadActive,setGamepadActive] = useState(false);
+    const [showVirtual,  setShowVirtual] = useState(false);
+
+    // Stable callbacks for VirtualJoystick — safe to pass as props
+    const onLeftStick  = useCallback((x, y) => controllerRef.current?.setVirtualLeft(x, y),  []);
+    const onRightStick = useCallback((x, y) => controllerRef.current?.setVirtualRight(x, y), []);
+    const onVirtualFire   = useCallback(() => controllerRef.current?.triggerVirtualFire(),   []);
+    const onVirtualReload = useCallback(() => controllerRef.current?.triggerVirtualReload(), []);
+
+    // Detect touch device once on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+            setShowVirtual(true);
+        }
+    }, []);
 
     const handleRestart = () => {
         setScore(0);
@@ -38,6 +54,7 @@ const ShooterPage = () => {
 
         const controller = new FirstPersonController(world, { moveSpeed: 0.1 });
         controller.attach(canvas);
+        controllerRef.current = controller;
 
         const game = new ShooterGame(world, canvas, controller, {
             onScore: setScore,
@@ -89,6 +106,7 @@ const ShooterPage = () => {
         world.start();
 
         return () => {
+            controllerRef.current = null;
             world.stop();
             controller.detach();
             game.stop();
@@ -115,6 +133,9 @@ const ShooterPage = () => {
                         <span style={{ color: '#ff4444' }}>Xbox controller:</span> Left stick move · Right stick look · <span style={{ color: '#ff4444' }}>LB</span> sprint · <span style={{ color: '#ff4444' }}>RT</span> shoot
                         &nbsp;— <em style={{ color: '#ff8888' }}>press any button to activate</em>
                     </li>
+                    <li style={{ marginTop: '4px', borderTop: '1px solid #550000', paddingTop: '4px' }}>
+                        <span style={{ color: '#ff4444' }}>Touch:</span> Left stick — move · Right stick — look · <span style={{ color: '#ff4444' }}>FIRE</span> button · <span style={{ color: '#ff4444' }}>X</span> reload
+                    </li>
                 </ul>
             </div>
 
@@ -125,6 +146,15 @@ const ShooterPage = () => {
                     height={600}
                     style={{ border: '2px solid #444', cursor: 'crosshair', display: 'block' }}
                 />
+
+                {showVirtual && !gameOver && (
+                    <VirtualJoystick
+                        onLeftStick={onLeftStick}
+                        onRightStick={onRightStick}
+                        onFire={onVirtualFire}
+                        onReload={onVirtualReload}
+                    />
+                )}
 
                 <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.65)', padding: '8px 18px', borderRadius: '8px', color: '#fff', fontFamily: 'monospace', fontSize: '20px', lineHeight: '1.7', border: '1px solid #555' }}>
                     <div>🎯 {score} / {TOTAL_TARGETS}</div>

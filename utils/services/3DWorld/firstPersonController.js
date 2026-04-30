@@ -50,6 +50,12 @@ export class FirstPersonController {
         this._prevRtPressed  = false;
         this._prevXPressed   = false;
 
+        // Virtual joystick input (touch)
+        this._virtLX = 0; this._virtLY = 0;
+        this._virtRX = 0; this._virtRY = 0;
+        this._virtualFirePending   = false;
+        this._virtualReloadPending = false;
+
         this._onGamepadConnected    = this._onGamepadConnected.bind(this);
         this._onGamepadDisconnected = this._onGamepadDisconnected.bind(this);
 
@@ -120,6 +126,13 @@ export class FirstPersonController {
         this._floors = floors;
     }
 
+    // ── Virtual joystick ────────────────────────────────────────────────────
+
+    setVirtualLeft(x, y)  { this._virtLX = x; this._virtLY = y; }
+    setVirtualRight(x, y) { this._virtRX = x; this._virtRY = y; }
+    triggerVirtualFire()   { this._virtualFirePending   = true; }
+    triggerVirtualReload() { this._virtualReloadPending = true; }
+
     /**
      * Apply movement for one frame based on currently held keys.
      * Call this once per animation frame (before rendering).
@@ -127,7 +140,10 @@ export class FirstPersonController {
     update() {
         this.shootTriggered  = false;
         this.reloadTriggered = false;
+        if (this._virtualFirePending)   { this.shootTriggered  = true; this._virtualFirePending   = false; }
+        if (this._virtualReloadPending) { this.reloadTriggered = true; this._virtualReloadPending = false; }
         this._pollGamepad();
+        this._applyVirtualSticks();
 
         const k = this._keys;
         const sprinting = k.has('shift');
@@ -240,6 +256,33 @@ export class FirstPersonController {
                 this._stepAudio.currentTime = 0;
             }
             this._stepTimer = interval;
+        }
+    }
+
+    // ── Virtual stick application ────────────────────────────────────────────
+
+    _applyVirtualSticks() {
+        const DEAD = 0.08;
+        const lx = Math.abs(this._virtLX) > DEAD ? this._virtLX : 0;
+        const ly = Math.abs(this._virtLY) > DEAD ? this._virtLY : 0;
+        const rx = Math.abs(this._virtRX) > DEAD ? this._virtRX : 0;
+        const ry = Math.abs(this._virtRY) > DEAD ? this._virtRY : 0;
+
+        if (lx || ly) {
+            const add = k => { this._keys.add(k); this._gpSynthKeys.add(k); };
+            if (ly < 0) add('w');
+            if (ly > 0) add('s');
+            if (lx < 0) add('a');
+            if (lx > 0) add('d');
+        }
+
+        if (rx || ry) {
+            const sens = this.gamepadLookSensitivity;
+            this.camera.rotation.yaw += rx * sens;
+            this.camera.rotation.pitch = Math.max(
+                this.minPitch,
+                Math.min(this.maxPitch, this.camera.rotation.pitch + ry * sens)
+            );
         }
     }
 
