@@ -178,7 +178,7 @@ export function VirtualJoystick({ onLeftStick, onRightStick, onFire, onReload })
             })}
 
             {/* ── Labels ── */}
-            <span style={{ position: 'absolute', bottom: 6,  left: 44,  fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>MOVE</span>
+            <span style={{ position: 'absolute', bottom: 6,  left: 74,  fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>MOVE</span>
             <span style={{ position: 'absolute', bottom: 6,  right: 152, fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>LOOK</span>
             <span style={{ position: 'absolute', bottom: 168, right: 46, fontSize: 9,  color: 'rgba(255,220,60,0.55)', pointerEvents: 'none', userSelect: 'none' }}>RELOAD</span>
         </div>
