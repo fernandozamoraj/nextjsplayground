@@ -146,18 +146,18 @@ export function VirtualJoystick({ onLeftStick, onRightStick, onFire, onReload })
             {/* ── Left stick: movement ── */}
             <Stick
                 onChange={onLeftStick}
-                style={{ position: 'absolute', bottom: 22, left: 52, pointerEvents: 'auto' }}
+                style={{ position: 'absolute', bottom: 82, left: 52, pointerEvents: 'auto' }}
             />
 
             {/* ── Right stick: look ── */}
             <Stick
                 onChange={onRightStick}
-                style={{ position: 'absolute', bottom: 22, right: 128, pointerEvents: 'auto' }}
+                style={{ position: 'absolute', bottom: 82, right: 128, pointerEvents: 'auto' }}
             />
 
             {/* ── FIRE button (big, red) ── */}
             {actionBtn('FIRE', onFire, {
-                bottom:     24,
+                bottom:     84,
                 right:      18,
                 width:      76,
                 height:     76,
@@ -168,7 +168,7 @@ export function VirtualJoystick({ onLeftStick, onRightStick, onFire, onReload })
 
             {/* ── X / Reload button ── */}
             {actionBtn('X', onReload, {
-                bottom:     116,
+                bottom:     176,
                 right:      36,
                 width:      48,
                 height:     48,
@@ -178,9 +178,9 @@ export function VirtualJoystick({ onLeftStick, onRightStick, onFire, onReload })
             })}
 
             {/* ── Labels ── */}
-            <span style={{ position: 'absolute', bottom: 6,  left: 74,  fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>MOVE</span>
-            <span style={{ position: 'absolute', bottom: 6,  right: 152, fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>LOOK</span>
-            <span style={{ position: 'absolute', bottom: 168, right: 46, fontSize: 9,  color: 'rgba(255,220,60,0.55)', pointerEvents: 'none', userSelect: 'none' }}>RELOAD</span>
+            <span style={{ position: 'absolute', bottom: 66,  left: 74,  fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>MOVE</span>
+            <span style={{ position: 'absolute', bottom: 66,  right: 152, fontSize: 10, color: 'rgba(255,255,255,0.4)', pointerEvents: 'none', userSelect: 'none' }}>LOOK</span>
+            <span style={{ position: 'absolute', bottom: 228, right: 46, fontSize: 9,  color: 'rgba(255,220,60,0.55)', pointerEvents: 'none', userSelect: 'none' }}>RELOAD</span>
         </div>
     );
 }
