@@ -20,9 +20,13 @@ export class SmokeEffect {
      * @param {number} [options.count]   - Number of smoke puffs (default 18)
      */
     constructor(wx, wy, wz, renderer, options = {}) {
-        this.renderer = renderer;
-        this.life     = 110;
-        this.maxLife  = 110;
+        this.renderer  = renderer;
+        this.life      = 110;
+        this.maxLife   = 110;
+        this._originX  = wx;
+        this._originY  = wy;
+        this._originZ  = wz;
+        this._visCheck = options.visibilityCheck ?? null;
 
         // Pre-load the smoke sprite once per effect instance
         this._img = new Image();
@@ -51,6 +55,12 @@ export class SmokeEffect {
 
     update(ctx) {
         if (this.life <= 0) return;
+
+        // Skip drawing if a wall is occluding the origin, but still advance life
+        if (this._visCheck && !this._visCheck(this._originX, this._originY, this._originZ)) {
+            this.life--;
+            return;
+        }
 
         const age = this.maxLife - this.life;
 
