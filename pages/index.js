@@ -1,7 +1,23 @@
-import Head from 'next/head'
-import Image from 'next/image'
+﻿import Head from 'next/head'
 import styles from '../styles/Home.module.css'
 import Link from 'next/link'
+
+const TILES = [
+  { href: '/calendar',                label: 'Paydate Calendar',    desc: 'Full-year calendar with highlighted paydays',             bg: '#2e6da4', img: '/images/paydate-calendar.png' },
+  { href: '/ammortizationCalculator', label: 'Amortization Calc',   desc: 'Calculate loan payments and amortization schedule',       bg: '#2e8b57', img: '/images/ammortization-calculator.png' },
+  { href: '/sudokuSolver',            label: 'Sudoku Solver',       desc: 'Plug in numbers and solve any Sudoku puzzle',             bg: '#7b52b9', img: '/images/sudoku-solver.png' },
+  { href: '/towersOfHanoi',           label: 'Towers of Hanoi',     desc: 'Step through the classic recursive puzzle',               bg: '#c0622a', img: '/images/towers-of-hanoi.png' },
+  { href: '/investmentCalculator',    label: 'Investment Calc',     desc: 'Growth with monthly contributions and compounding',       bg: '#1a8a8a', img: '/images/investment-calculator.png' },
+  { href: '/stockPicks',              label: 'Stock Picks',         desc: 'Track stock prices with real-time historical data',       bg: '#a07828', img: '/images/stock-picks.png' },
+  { href: '/dpsWaitTimes',            label: 'TX DPS Wait Times',   desc: 'Driver license office wait times by location',            bg: '#2563a8', img: '/images/tx-dps-wait-times.png' },
+  { href: '/students',                label: 'Student Directory',   desc: 'Manage student records with drawer-based edits',          bg: '#b04040', img: '/images/student-directory.png' },
+  { href: '/todoapp',                 label: 'Todo App',            desc: 'Track tasks with due dates, notes, and status',           bg: '#2e6896', img: '/images/todo-app.png' },
+  { href: '/pythonConsole',           label: 'Python Console',      desc: 'Run basic Python code in the browser',                   bg: '#8a7a20', img: '/images/python-console.png' },
+  { href: '/typingGame',              label: 'Typing Game',         desc: 'Type the falling words to score points',                 bg: '#3a8a3a', img: '/images/typing-game.png' },
+  { href: '/threeDeeDemo',            label: '3D Demo',             desc: 'Homebrewed 3D engine using JS and canvas',               bg: '#6a3aaa', img: '/images/3d-demo.png' },
+  { href: '/shapeworld',              label: 'Shape World',         desc: 'Walk a 3D world in first-person with WASD',              bg: '#b06020', img: '/images/shape-world.png' },
+  { href: '/shooter',                 label: 'Shooter Game',        desc: 'Hunt down targets in a 3D arena, dodge tracking orbs',   bg: '#b03030', img: '/images/shooter-game.png' },
+]
 
 export default function Home() {
   return (
@@ -13,141 +29,37 @@ export default function Home() {
       </Head>
 
       <main className={styles.main}>
-        <div className="mb-4" style={{width: '75%', maxWidth: '75%', margin: '0 auto'}}>
-          <img src="/images/homepage.png" alt="Fernando's NextJS Playground" style={{width: '50%', height: 'auto', display: 'block', margin: '0 auto'}} />
+        <div style={{ marginBottom: '0.75rem' }}>
+          <img
+            src="/images/homepage.png"
+            alt="Fernando Next JS Playground"
+            style={{ width: 220, height: 'auto', display: 'block', margin: '0 auto' }}
+          />
         </div>
-        <p>
-          All code available at <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">https://github.com/fernandozamoraj/nextjsplayground</a>
+
+        <p className={styles.metaLine}>
+          Code at{' '}
+          <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">
+            github.com/fernandozamoraj/nextjsplayground
+          </a>
         </p>
-        <p className="bg-warning d-block d-md-none">
-              This content is best viewed in desktop mode due to the amount of data displayed in some of the pages. Please switch to a desktop or laptop for the best experience.
+
+        <p className={`${styles.mobileWarning} d-block d-md-none`}>
+          Best viewed on desktop - some pages require more screen space.
         </p>
 
         <div className={styles.grid}>
-          <Link href="/calendar">
-            <a className={styles.card}>
-            <h2>Paydate Calendar&rarr;</h2>
-            <p>A full year calendar with highlighted paydays</p>
-          </a>
-          </Link>
-          <Link href="/ammortizationCalculator">
-            <a className={styles.card}>
-            <h2>Ammortization Calculator &rarr;</h2>
-            <p>An ammortization calculator to calculate your payments</p>
-          </a>
-          </Link>
-
-          <Link href="/sudokuSolver">
-            <a className={styles.card}>
-            <h2>Sudoku Solver &rarr;</h2>
-            <p>Plug in the numbers and solve any Sudoku puzzle</p>
-          </a>
-          </Link>
-
-          <Link href="/towersOfHanoi">
-            <a className={styles.card}>
-            <h2>Visual Towers of Hanoi &rarr;</h2>
-            <p>Step through the classic Tower of Hanoi puzzle visualization</p>
-          </a>
-          </Link>
-
-          <Link href="/investmentCalculator">
-            <a className={styles.card}>
-            <h2>Investment Calculator &rarr;</h2>
-            <p>Calculate investment growth with monthly contributions and compounding</p>
-          </a>
-          </Link>
-
-          <Link href="/stockPicks">
-            <a className={styles.card}>
-            <h2>Stock Picks Tracker &rarr;</h2>
-            <p>Track stock prices with historical highs and lows using real-time data</p>
-          </a>
-          </Link>
-
-          <Link href="/dpsWaitTimes">
-            <a className={styles.card}>
-            <h2>Texas DPS Wait Times &rarr;</h2>
-            <p>Search cached driver license office wait times by location, distance, and service type</p>
-          </a>
-          </Link>
-
-          <Link href="/students">
-            <a className={styles.card}>
-            <h2>Student Directory &rarr;</h2>
-            <p>Manage student records with drawer-based edits and inserts</p>
-          </a>
-          </Link>
-
-          <Link href="/todoapp">
-            <a className={styles.card}>
-            <h2>Todo App &rarr;</h2>
-            <p>Track your tasks with due dates, notes, and status indicators</p>
-          </a>
-          </Link>
-
-          <Link href="/pythonConsole">
-            <a className={styles.card}>
-            <h2>Python Console &rarr;</h2>
-            <p>Run basic Python code in the browser</p>
-          </a>
-          </Link>
-
-          <Link href="/typingGame">
-            <a className={styles.card}>
-            <h2>Typing Game &rarr;</h2>
-            <p>Type the falling words to score points</p>
-          </a>
-          </Link>
-
-          <Link href="/threeDeeDemo">
-            <a className={styles.card}>
-            <h2>3D Demo &rarr;</h2>
-            <p>Homebrewed 3D rendering engine using only JavaScript and the HTML canvas</p>
-          </a>
-          </Link>
-
-          <Link href="/shapeworld">
-            <a className={styles.card}>
-            <h2>Shape World &rarr;</h2>
-            <p>Walk around a 3D world of shapes in first-person using WASD and mouse look</p>
-          </a>
-          </Link>
-
-          <Link href="/shooter">
-            <a className={styles.card}>
-            <h2>Shooter Game &rarr;</h2>
-            <p>Hunt down 8 spinning bottle targets scattered around a 3D world — track your time and shots</p>
-          </a>
-          </Link>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-
-          </a>
+          {TILES.map(tile => (
+            <Link key={tile.href} href={tile.href}>
+              <a className={styles.card} style={{ backgroundColor: tile.bg }}>
+                {tile.img && <img src={tile.img} alt="" className={styles.cardImg} />}
+                <h2>{tile.label}</h2>
+                <p>{tile.desc}</p>
+              </a>
+            </Link>
+          ))}
         </div>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
   )
 }
