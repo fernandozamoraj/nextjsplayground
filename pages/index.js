@@ -4,7 +4,8 @@ import Link from 'next/link'
 
 const TILES = [
   { href: '/calendar',                label: 'Paydate Calendar',    desc: 'Full-year calendar with highlighted paydays',             bg: '#2e6da4', img: '/images/paydate-calendar.png' },
-  { href: '/ammortizationCalculator', label: 'Amortization Calc',   desc: 'Calculate loan payments and amortization schedule',       bg: '#2e8b57', img: '/images/ammortization-calculator.png' },
+  { href: '/ammortizationCalculator',   label: 'Amortization Calc',      desc: 'Calculate loan payments and amortization schedule',       bg: '#2e8b57', img: '/images/ammortization-calculator.png' },
+  { href: '/betterSimpleCalculator',   label: 'Better Simple Calc',     desc: 'Chain arithmetic operations step by step',                bg: '#4a6fa5', img: '/images/a-better-simple-calculator.png' },
   { href: '/sudokuSolver',            label: 'Sudoku Solver',       desc: 'Plug in numbers and solve any Sudoku puzzle',             bg: '#7b52b9', img: '/images/sudoku-solver.png' },
   { href: '/towersOfHanoi',           label: 'Towers of Hanoi',     desc: 'Step through the classic recursive puzzle',               bg: '#c0622a', img: '/images/towers-of-hanoi.png' },
   { href: '/investmentCalculator',    label: 'Investment Calc',     desc: 'Growth with monthly contributions and compounding',       bg: '#1a8a8a', img: '/images/investment-calculator.png' },
