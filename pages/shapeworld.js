@@ -27,8 +27,65 @@ const ShapeWorld = () => {
         // Hook controller.update() into the world's render loop
         world._onBeforeRender = () => controller.update();
 
+        // ---- Floating rotating shapes ----
+        // Rodrigues rotation: rotate point p around unit axis u by angle θ
+        function rotatePoint(p, cx, cy, cz, ux, uy, uz, angle) {
+            const cos = Math.cos(angle), sin = Math.sin(angle), t = 1 - cos;
+            const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+            const dot = ux * dx + uy * dy + uz * dz;
+            return {
+                x: cx + dx * cos + (uy * dz - uz * dy) * sin + ux * dot * t,
+                y: cy + dy * cos + (uz * dx - ux * dz) * sin + uy * dot * t,
+                z: cz + dz * cos + (ux * dy - uy * dx) * sin + uz * dot * t,
+            };
+        }
+
+        function randomAxis() {
+            // random axis not aligned to x/y/z — all components non-zero
+            const v = {
+                x: 0.3 + Math.random() * 0.7,
+                y: 0.3 + Math.random() * 0.7,
+                z: 0.3 + Math.random() * 0.7,
+            };
+            if (Math.random() < 0.5) v.x = -v.x;
+            if (Math.random() < 0.5) v.y = -v.y;
+            if (Math.random() < 0.5) v.z = -v.z;
+            const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+            return { x: v.x / len, y: v.y / len, z: v.z / len };
+        }
+
+        // Build the 4 floating shapes
+        const floaters = [
+            { mesh: shapes.sphere(   -6, 5,  4, 0.9, 8, 12), color: '#ff6688', cx: -6, cy: 5.9, cz:  4 },
+            { mesh: shapes.box(       0, 4,  8, 1.2, 1.2, 1.2), color: '#44ddff', cx: 0,  cy: 4.6, cz:  8 },
+            { mesh: shapes.cylinder(  6, 4,  3, 0.6, 1.4, 14),  color: '#ffcc44', cx: 6,  cy: 4.7, cz:  3 },
+            { mesh: shapes.pyramid(  -2, 4, 12, 1.5, 1.5, 2),   color: '#88ff88', cx: -2, cy: 5,   cz: 12 },
+        ].map(f => {
+            const axis = randomAxis();
+            const speed = 0.008 + Math.random() * 0.012; // radians per frame
+            // Snapshot original vertex positions
+            const origVerts = f.mesh.vertices.map(v => ({ ...v }));
+            world.add(f.mesh, f.color);
+            return { mesh: f.mesh, origVerts, cx: f.cx, cy: f.cy, cz: f.cz, axis, speed, angle: 0 };
+        });
+
+        world._onBeforeRender = () => {
+            controller.update();
+            for (const f of floaters) {
+                f.angle += f.speed;
+                const { cx, cy, cz, axis: { x: ux, y: uy, z: uz }, angle } = f;
+                f.origVerts.forEach((orig, i) => {
+                    const r = rotatePoint(orig, cx, cy, cz, ux, uy, uz, angle);
+                    f.mesh.vertices[i].x = r.x;
+                    f.mesh.vertices[i].y = r.y;
+                    f.mesh.vertices[i].z = r.z;
+                });
+            }
+        };
+
         // ---- Scene objects ----
         world.add(shapes.ground(30),                              '#c8c8c8', true);
+        world.add(shapes.horseAndRider(-8, 0, 6, 1.4),            '#b87333');  // bronze statue
         world.add(shapes.box(       0,  0,  2,  1,   4,   1  ),  '#4af'  );
         world.add(shapes.cylinder( -5,  0,  4,  0.7, 2.5     ),  '#fa4'  );
         world.add(shapes.pyramid(   5,  0,  5,  2,   2,   3  ),  '#4fa'  );

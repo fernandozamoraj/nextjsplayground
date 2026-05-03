@@ -146,4 +146,75 @@ export class ShapeFactory {
 
         return new Mesh(vertices, faces);
     }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+
+    /** Combine multiple Mesh objects into one. */
+    merge(meshes) {
+        const allVerts = [];
+        const allFaces = [];
+        for (const m of meshes) {
+            const offset = allVerts.length;
+            allVerts.push(...m.vertices.map(v => ({ ...v })));
+            allFaces.push(...m.faces.map(f => f.map(i => i + offset)));
+        }
+        return new Mesh(allVerts, allFaces);
+    }
+
+    /**
+     * Low-poly man-on-horse statue.
+     * Horse faces +Z (tail at back, head toward -Z).
+     * @param {number} cx centre X
+     * @param {number} baseY ground Y (hooves touch this)
+     * @param {number} cz centre Z
+     * @param {number} scale overall scale multiplier (default 1)
+     */
+    horseAndRider(cx, baseY, cz, scale = 1) {
+        const s = scale;
+        const parts = [
+            // ── Horse ──────────────────────────────────────────────────────
+            // Body
+            this.box(cx, baseY + s*1.1, cz,          s*0.65, s*0.85, s*2.0),
+            // Neck (slightly forward)
+            this.box(cx, baseY + s*1.78, cz - s*0.82, s*0.48, s*0.70, s*0.46),
+            // Head
+            this.box(cx, baseY + s*2.28, cz - s*1.18, s*0.42, s*0.42, s*0.66),
+            // Snout
+            this.box(cx, baseY + s*2.04, cz - s*1.60, s*0.26, s*0.20, s*0.44),
+            // Ear L
+            this.box(cx - s*0.14, baseY + s*2.60, cz - s*1.12, s*0.10, s*0.22, s*0.10),
+            // Ear R
+            this.box(cx + s*0.14, baseY + s*2.60, cz - s*1.12, s*0.10, s*0.22, s*0.10),
+            // Front left leg
+            this.box(cx - s*0.21, baseY, cz - s*0.62, s*0.21, s*1.10, s*0.21),
+            // Front right leg
+            this.box(cx + s*0.21, baseY, cz - s*0.62, s*0.21, s*1.10, s*0.21),
+            // Back left leg
+            this.box(cx - s*0.21, baseY, cz + s*0.62, s*0.21, s*1.10, s*0.21),
+            // Back right leg
+            this.box(cx + s*0.21, baseY, cz + s*0.62, s*0.21, s*1.10, s*0.21),
+            // Tail
+            this.box(cx, baseY + s*1.55, cz + s*1.14, s*0.13, s*0.42, s*0.42),
+            // ── Rider ──────────────────────────────────────────────────────
+            // Hips / seat
+            this.box(cx, baseY + s*2.18, cz - s*0.10, s*0.46, s*0.28, s*0.32),
+            // Torso
+            this.box(cx, baseY + s*2.75, cz - s*0.10, s*0.40, s*0.58, s*0.26),
+            // Head
+            this.sphere(cx, baseY + s*3.38, cz - s*0.10, s*0.28, 5, 8),
+            // Hat brim
+            this.box(cx, baseY + s*3.64, cz - s*0.10, s*0.54, s*0.08, s*0.54),
+            // Hat crown
+            this.box(cx, baseY + s*3.82, cz - s*0.10, s*0.34, s*0.24, s*0.34),
+            // Left arm (raised slightly forward — holding reins)
+            this.box(cx - s*0.34, baseY + s*2.76, cz - s*0.30, s*0.16, s*0.54, s*0.16),
+            // Right arm
+            this.box(cx + s*0.34, baseY + s*2.76, cz - s*0.30, s*0.16, s*0.54, s*0.16),
+            // Left lower leg / stirrup
+            this.box(cx - s*0.32, baseY + s*1.62, cz + s*0.15, s*0.15, s*0.52, s*0.15),
+            // Right lower leg / stirrup
+            this.box(cx + s*0.32, baseY + s*1.62, cz + s*0.15, s*0.15, s*0.52, s*0.15),
+        ];
+        return this.merge(parts);
+    }
 }
