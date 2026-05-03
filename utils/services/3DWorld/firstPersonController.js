@@ -36,6 +36,7 @@ export class FirstPersonController {
         this.gamepadLookSensitivity  = options.gamepadLookSensitivity  ?? 2.5;
         this.minPitch                = options.minPitch                ?? -80;
         this.maxPitch                = options.maxPitch                ??  80;
+        this._verticalFlight         = options.verticalFlight          ?? false;
 
         this._keys          = new Set();
         this._gpSynthKeys   = new Set();   // keys injected by gamepad this frame
@@ -219,17 +220,23 @@ export class FirstPersonController {
             if (k.has('s')) this.camera.moveForward(-speed);
             if (k.has('a')) this.camera.strafeRight(-speed);
             if (k.has('d')) this.camera.strafeRight(speed);
-            // Gravity
-            this._velY = Math.max(this._velY - GRAVITY, TERM_VEL);
-            this.camera.position.y += this._velY;
-            // Land on floor
-            if (this.camera.position.y < floorCamY) {
-                const impact = this._velY; // negative — how hard we hit
-                this.camera.position.y = floorCamY;
-                this._velY = 0;
-                if (impact < -0.05) {
-                    this._thumpAudio.currentTime = 0;
-                    this._thumpAudio.play().catch(() => {});
+            // Vertical flight (Q/E) — only when enabled
+            if (this._verticalFlight) {
+                if (k.has('q')) this.camera.position.y += speed;
+                if (k.has('e')) this.camera.position.y -= speed;
+            } else {
+                // Gravity
+                this._velY = Math.max(this._velY - GRAVITY, TERM_VEL);
+                this.camera.position.y += this._velY;
+                // Land on floor
+                if (this.camera.position.y < floorCamY) {
+                    const impact = this._velY; // negative — how hard we hit
+                    this.camera.position.y = floorCamY;
+                    this._velY = 0;
+                    if (impact < -0.05) {
+                        this._thumpAudio.currentTime = 0;
+                        this._thumpAudio.play().catch(() => {});
+                    }
                 }
             }
         }

@@ -37,13 +37,6 @@ export default function Home() {
           />
         </div>
 
-        <p className={styles.metaLine}>
-          Code at{' '}
-          <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">
-            github.com/fernandozamoraj/nextjsplayground
-          </a>
-        </p>
-
         <p className={`${styles.mobileWarning} d-block d-md-none`}>
           Best viewed on desktop - some pages require more screen space.
         </p>
@@ -60,6 +53,13 @@ export default function Home() {
           ))}
         </div>
       </main>
+
+      <footer className={styles.footer}>
+        Code at{' '}
+        <a href="https://github.com/fernandozamoraj/nextjsplayground" target="_blank" rel="noreferrer">
+          github.com/fernandozamoraj/nextjsplayground
+        </a>
+      </footer>
     </div>
   )
 }

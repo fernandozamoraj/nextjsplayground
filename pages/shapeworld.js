@@ -21,7 +21,7 @@ const ShapeWorld = () => {
             lightPosition:  { x: 60, y: 60,  z: -20  },
         });
 
-        const controller = new FirstPersonController(world);
+        const controller = new FirstPersonController(world, { verticalFlight: true });
         controller.attach(canvas);
 
         // Hook controller.update() into the world's render loop
