@@ -27,15 +27,52 @@ export default function Home() {
         <title>Fernando&apos;s NextJS Playground</title>
         <meta name="description" content="a first next js application" />
         <link rel="icon" href="/favicon.ico" />
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
       </Head>
 
+      <div style={{ width: '100%', position: 'relative', lineHeight: 0 }}>
+        <img
+          src="/images/rocket-car.png"
+          alt="Rocket Car Banner"
+          style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', display: 'block' }}
+        />
+        <img
+          src="/images/homepage.png"
+          alt="Fernando Next JS Playground"
+          style={{
+            position: 'absolute',
+            right: '2rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 200,
+            height: 'auto',
+          }}
+        />
+      </div>
+
       <main className={styles.main}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <img
-            src="/images/homepage.png"
-            alt="Fernando Next JS Playground"
-            style={{ width: 220, height: 'auto', display: 'block', margin: '0 auto' }}
-          />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+          <p style={{ color: '#ccc', fontSize: '1.6rem', margin: 0, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
+            A playground for me&hellip; useful tools for you.
+          </p>
+          <button
+            type="button"
+            style={{
+              backgroundColor: '#ff813f',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.5rem 1.25rem',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              marginLeft: '1.5rem',
+            }}
+          >
+            Buy Me a Coffee
+          </button>
         </div>
 
         <p className={`${styles.mobileWarning} d-block d-md-none`}>
