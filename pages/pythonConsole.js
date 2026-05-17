@@ -186,7 +186,7 @@ const PythonConsole = () => {
     return (
         <div
             className="container bg-lighter text-secondary"
-            style={{ maxHeight: '100vh', overflow: 'hidden', paddingBottom: '1rem' }}
+            style={{ paddingBottom: '2rem' }}
         >
             <BackLink />
             <div className="row pb-4">
@@ -215,7 +215,7 @@ const PythonConsole = () => {
                     <textarea
                         id="pythonCode"
                         className="form-control"
-                        rows={10}
+                        rows={6}
                         value={consoleState.code}
                         onChange={handleCodeChange}
                         disabled={!consoleState.isReady || consoleState.isRunning}
@@ -249,8 +249,8 @@ const PythonConsole = () => {
                     <pre
                         className="p-3 border"
                         style={{
-                            minHeight: '160px',
-                            maxHeight: '30vh',
+                            minHeight: '100px',
+                            maxHeight: '40vh',
                             overflow: 'auto',
                             whiteSpace: 'pre-wrap',
                             backgroundColor: '#0b1120',
