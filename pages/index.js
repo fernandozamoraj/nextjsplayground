@@ -57,8 +57,10 @@ export default function Home() {
           <p style={{ color: '#ccc', fontSize: '1.6rem', margin: 0, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
             A playground for me&hellip; useful tools for you.
           </p>
-          <button
-            type="button"
+          <a
+            href="https://buymeacoffee.com/fernandozat"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               backgroundColor: '#ff6a00',
               color: '#fff',
@@ -70,10 +72,12 @@ export default function Home() {
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               marginLeft: '1.5rem',
+              textDecoration: 'none',
+              display: 'inline-block',
             }}
           >
             Buy Me a Coffee
-          </button>
+          </a>
         </div>
 
         <p className={`${styles.mobileWarning} d-block d-md-none`}>
