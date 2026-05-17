@@ -59,7 +59,7 @@ export default function Home() {
           <button
             type="button"
             style={{
-              backgroundColor: '#ff813f',
+              backgroundColor: '#ff6a00',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
