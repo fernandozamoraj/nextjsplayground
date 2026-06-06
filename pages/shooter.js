@@ -139,6 +139,7 @@ const ShooterPage = () => {
                 <ul style={{ color: '#ff6666', fontWeight: 'bold', margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.8' }}>
                     <li><span style={{ color: '#ff4444' }}>Click canvas</span> to lock mouse and enter the world</li>
                     <li><span style={{ color: '#ff4444' }}>Aim</span> with the mouse — <span style={{ color: '#ff4444' }}>click</span> to shoot a target in your crosshair</li>
+                    <li><span style={{ color: '#ff4444' }}>Right click</span> to throw a grenade (5 total)</li>
                     <li><span style={{ color: '#ff4444' }}>Move:</span> W / A / S / D &nbsp;|&nbsp; <span style={{ color: '#ff4444' }}>Sprint:</span> hold <kbd style={{ background: '#440000', color: '#ff4444', padding: '1px 6px', borderRadius: '3px', border: '1px solid #ff4444' }}>Shift</kbd></li>
                     <li><span style={{ color: '#ff4444' }}>Release mouse:</span> press <kbd style={{ background: '#440000', color: '#ff4444', padding: '1px 6px', borderRadius: '3px', border: '1px solid #ff4444' }}>Esc</kbd></li>
                     <li style={{ marginTop: '4px', borderTop: '1px solid #550000', paddingTop: '4px' }}>
