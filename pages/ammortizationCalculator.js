@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import NumericInput from 'react-numeric-input';
 import ActionButton from '../comps/actionButton';
 import BackLink from '../comps/backLink';
 
 const AmmortizationCalculator = () =>{
+
+    const router = useRouter();
 
     const [calculatorState, setCalculatorState] = useState(
         {
@@ -17,8 +20,144 @@ const AmmortizationCalculator = () =>{
         }
     );
 
+    const [didHydrateFromQuery, setDidHydrateFromQuery] = useState(false);
+
+    const getSingleQueryValue = (queryValue) => {
+        if (Array.isArray(queryValue)) {
+            return queryValue[0];
+        }
+        return queryValue;
+    };
+
+    const parsePositiveNumber = (value, fallbackValue) => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue) || numericValue <= 0) {
+            return fallbackValue;
+        }
+        return numericValue;
+    };
+
+    const parseNonNegativeNumber = (value, fallbackValue) => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue) || numericValue < 0) {
+            return fallbackValue;
+        }
+        return numericValue;
+    };
+
+    useEffect(() => {
+        if (!router.isReady || didHydrateFromQuery) {
+            return;
+        }
+
+        const amountFromQuery = parsePositiveNumber(
+            getSingleQueryValue(router.query.amount),
+            1000
+        );
+        const rateFromQuery = parseNonNegativeNumber(
+            getSingleQueryValue(router.query.rate),
+            5.5
+        );
+        const termFromQuery = Math.round(
+            parsePositiveNumber(getSingleQueryValue(router.query.term), 36)
+        );
+
+        setCalculatorState((previousState) => ({
+            ...previousState,
+            amount: amountFromQuery,
+            interestRate: rateFromQuery,
+            termLength: termFromQuery
+        }));
+
+        setDidHydrateFromQuery(true);
+    }, [didHydrateFromQuery, router.isReady, router.query.amount, router.query.rate, router.query.term]);
+
+    useEffect(() => {
+        if (!router.isReady || !didHydrateFromQuery) {
+            return;
+        }
+
+        const amountValue = Number(calculatorState.amount);
+        const rateValue = Number(calculatorState.interestRate);
+        const termValue = Math.round(Number(calculatorState.termLength));
+
+        if (
+            !Number.isFinite(amountValue) ||
+            amountValue <= 0 ||
+            !Number.isFinite(rateValue) ||
+            rateValue < 0 ||
+            !Number.isFinite(termValue) ||
+            termValue <= 0
+        ) {
+            return;
+        }
+
+        const amountParam = String(amountValue);
+        const rateParam = String(rateValue);
+        const termParam = String(termValue);
+
+        const currentAmount = getSingleQueryValue(router.query.amount);
+        const currentRate = getSingleQueryValue(router.query.rate);
+        const currentTerm = getSingleQueryValue(router.query.term);
+
+        if (
+            currentAmount === amountParam &&
+            currentRate === rateParam &&
+            currentTerm === termParam
+        ) {
+            return;
+        }
+
+        router.replace(
+            {
+                pathname: router.pathname,
+                query: {
+                    ...router.query,
+                    amount: amountParam,
+                    rate: rateParam,
+                    term: termParam
+                }
+            },
+            undefined,
+            { shallow: true }
+        );
+    }, [
+        calculatorState.amount,
+        calculatorState.interestRate,
+        calculatorState.termLength,
+        didHydrateFromQuery,
+        router
+    ]);
+
 
     const handleCalculate = () => {
+         const amountValue = Number(calculatorState.amount);
+         const rateValue = Number(calculatorState.interestRate);
+         const termValue = Math.round(Number(calculatorState.termLength));
+
+         if (
+            Number.isFinite(amountValue) &&
+            amountValue > 0 &&
+            Number.isFinite(rateValue) &&
+            rateValue >= 0 &&
+            Number.isFinite(termValue) &&
+            termValue > 0
+         ) {
+            router.push(
+                {
+                    pathname: router.pathname,
+                    query: {
+                        ...router.query,
+                        amount: String(amountValue),
+                        rate: String(rateValue),
+                        term: String(termValue)
+                    }
+                },
+                undefined,
+                { shallow: true }
+            );
+         }
+
          let paymentAmount = calculatePayment();
          //setPayment(paymentAmount);
          let ammortizationInfo = createAmmortizationTable();  

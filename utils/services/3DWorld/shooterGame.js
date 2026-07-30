@@ -7,7 +7,7 @@ export const TOTAL_TARGETS = 13; // 8 bottles + 5 orbs
 
 /**
  * ShooterGame — encapsulates all game logic for the shooter page.
- * Handles level building, target management, shooting, effects, and gun overlay.
+ * Handles level building, target management, shooting, effects, and spgun overlay.
  *
  * Usage:
  *   const game = new ShooterGame(world, canvas, controller, { onScore, onGameOver });
@@ -17,14 +17,9 @@ export const TOTAL_TARGETS = 13; // 8 bottles + 5 orbs
  *   game.stop();    // cleanup (call on unmount)
  */
 export class ShooterGame {
-    /**
-     * @param {object} world        - World instance
-     * @param {HTMLCanvasElement} canvas
-     * @param {object} controller   - FirstPersonController instance
-     * @param {object} options
-     * @param {function} options.onScore    - called with new score (number) when a target is hit
-     * @param {function} options.onGameOver - called when all targets are eliminated
-     */
+
+    // ...existing imports...
+
     constructor(world, canvas, controller, { onScore, onGameOver, onPlayerHit, onPlayerDead }) {
         this._world      = world;
         this._canvas     = canvas;
@@ -44,7 +39,6 @@ export class ShooterGame {
         this._ladders    = [];
         this._floors     = [];
         this._trashcans  = [];
-        this._smokeFrame = 0;
 
         this._handleShoot = this._handleShoot.bind(this);
         this._handleReloadKey = this._handleReloadKey.bind(this);
@@ -56,8 +50,11 @@ export class ShooterGame {
         this._boxHitAudio = null;
         this._reloadAudio = null;
         this._grenadeAudio = null;
-        this._flashFrames = 0; // countdown frames for muzzle flash
-        this._noAmmoFlash = 0;  // countdown frames for big RELOAD warning
+
+        this._flashTime    = 0;
+        this._flashTotal   = 4 / 60;
+        this._noAmmoTime   = 0;
+        this._noAmmoTotal  = 1.5;
 
         this._autoFireHoldMs = 500;
         this._autoFireRateMs = 110;
@@ -75,26 +72,28 @@ export class ShooterGame {
 
         this._grenadesMax = 10;
         this._grenades = 10;
-        this._grenadeThrowSpeed = 0.48;
-        this._grenadeArcHeight = 0.23;
+        this._grenadeThrowSpeed = 0.48 * 60;
+        this._grenadeArcHeight = 0.23 * 60;
         this._grenadePitchInfluence = 0.32;
         this._grenadeBlastRadius = 3.2;
         this._grenadeProximityFactor = 0.65;
         this._grenadeProjectiles = [];
         this._grenadeFragments = [];
 
-        // Ammo / reload
         this._maxRounds      = 20;
         this._rounds         = 20;
         this._reloading      = false;
         this._reloadProgress = 0;
-        this._reloadTotal    = 90; // frames (~1.5 s at 60 fps)
+        this._reloadTotal    = 1.5;
 
         this._orbs = [];
         this._sniperOrbs = [];
         this._trackingOrbs = [];
         this._playerHealth = 5;
-        this._trackingHitFlash = 0;
+        this._trackingHitTime = 0;
+        this._trackingHitTotal = 40 / 60;
+        this._smokeTimer    = 0;
+        this._smokeInterval = 14 / 60;
         this._dirChangeInterval = null;
         this._sniperFireInterval = null;
         this._sniperSpawnInterval = null;
@@ -108,32 +107,33 @@ export class ShooterGame {
             this._gunOverlayReady = true;
         };
         this._gunOverlayImg.src = '/images/machinegun-aim.png';
-    }
-
-    /** Populate the world: ground + level + targets. Call before start(). */
-    build() {
-        this._world.add(this._shapes.ground(50), '#ccc', true);
-        this._buildLevel();
-        this._buildTargets();
-        this._buildOrbs();
-        this._buildSniperOrbs();
-        this._buildTrashcans();
-        this._controller.setLadders(this._ladders);
-        this._controller.setFloors(this._floors);
+            this._handleMapFileChosen = this._handleMapFileChosen.bind(this);
+        this._mapFileInput = null;
     }
 
     /** Hook into world render loop and attach click listener. */
     start() {
-        this._world._onBeforeRender = () => {
-            this._controller.update();
-            // Gamepad RT shoot
+
+        if (!this._mapFileInput) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.shtr,.shr,application/json';
+            input.style.display = 'none';
+            input.addEventListener('change', this._handleMapFileChosen);
+            document.body.appendChild(input);
+            this._mapFileInput = input;
+        }
+
+        this._world._onBeforeRender = (delta) => {
+            this._controller.update(delta);
+
             if (this._controller.shootTriggered && !this._gameOver) this._handleShoot(true);
-            // Gamepad X reload
             if (this._controller.reloadTriggered && !this._gameOver) this._startReload();
-            this._updateGrenades();
-            // Advance reload
+
+            this._updateGrenades(delta);
+
             if (this._reloading) {
-                this._reloadProgress++;
+                this._reloadProgress += delta;
                 if (this._reloadProgress >= this._reloadTotal) {
                     this._rounds         = this._maxRounds;
                     this._reloading      = false;
@@ -141,15 +141,19 @@ export class ShooterGame {
                     if (this._reloadAudio) { this._reloadAudio.currentTime = 0; this._reloadAudio.play().catch(() => {}); }
                 }
             }
-            this._targets.forEach(t => { if (t.alive) this._rotateY(t.mesh, t.cx, t.cz, 1.5); });
+
+            this._targets.forEach(t => { if (t.alive) this._rotateY(t.mesh, t.cx, t.cz, 90 * delta); });
+
             this._explosions.forEach(e => e.update());
             this._explosions = this._explosions.filter(e => e.alive);
-            this._updateOrbs();
-            this._updateSniperOrbs();
-            this._updateTrackingOrbs();
-            // Continuously emit smoke from burning trash cans
-            this._smokeFrame++;
-            if (this._smokeFrame % 14 === 0) {
+
+            this._updateOrbs(delta);
+            this._updateSniperOrbs(delta);
+            this._updateTrackingOrbs(delta);
+
+            this._smokeTimer += delta;
+            if (this._smokeTimer >= this._smokeInterval) {
+                this._smokeTimer = 0;
                 this._trashcans.forEach(tc => {
                     this._smokes.push(new SmokeEffect(tc.x, tc.y, tc.z, this._world.renderer, {
                         count: 9,
@@ -168,10 +172,13 @@ export class ShooterGame {
         this._trackingOrbSpawnInterval = setInterval(() => this._spawnTrackingOrb(), 10000);
 
         this._world._onAfterRender = (ctx) => {
+            const dt = this._world._lastDelta || (1 / 60);
+
+            const recoilFactor = Math.pow(0.72, 60 * dt);
             if (Math.abs(this._gunRecoilX) < 0.1) this._gunRecoilX = 0;
-            else this._gunRecoilX *= this._gunRecoilReturn;
+            else this._gunRecoilX *= recoilFactor;
             if (Math.abs(this._gunRecoilY) < 0.1) this._gunRecoilY = 0;
-            else this._gunRecoilY *= this._gunRecoilReturn;
+            else this._gunRecoilY *= recoilFactor;
 
             this._impacts.forEach(fx => fx.update(ctx));
             this._impacts = this._impacts.filter(fx => fx.alive);
@@ -185,9 +192,10 @@ export class ShooterGame {
             this._drawGrenades(ctx);
             if (!this._gameOver) this._drawGun(ctx);
             this._drawTrackingHit(ctx);
-            if (this._flashFrames > 0) {
+            if (this._flashTime > 0) {
                 this._drawMuzzleFlash(ctx);
-                this._flashFrames--;
+                this._flashTime -= dt;
+                if (this._flashTime < 0) this._flashTime = 0;
             }
             this._drawHealthBar(ctx);
             if (!this._gameOver) this._drawAmmoBar(ctx);
@@ -214,6 +222,493 @@ export class ShooterGame {
         this._grenadeAudio.load();
     }
 
+
+    _buildOrbs() {
+        const colors = ['#ff44ff', '#44ffff', '#ffff44', '#ff8844', '#88ff44'];
+        this._orbs = colors.map(color => {
+            const x = -18 + Math.random() * 36;
+            const y = 1.2 + Math.random() * 3.0;
+            const z = -18 + Math.random() * 34;
+            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
+            this._world.add(mesh, color);
+            const speed = (0.04 + Math.random() * 0.03) * 60;
+            const angle = Math.random() * Math.PI * 2;
+            return {
+                mesh, alive: true, color,
+                x, y, z,
+                vx: Math.cos(angle) * speed,
+                vy: (Math.random() - 0.5) * 0.02 * 60,
+                vz: Math.sin(angle) * speed,
+            };
+        });
+    }
+
+    _handleMapFileChosen(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const name = (file.name || '').toLowerCase();
+        if (!name.endsWith('.shtr') && !name.endsWith('.shr')) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                this._applySavedMapState(data); // map-only apply
+            } catch (_) {}
+        };
+        reader.readAsText(file);
+    }
+
+    _saveMapToFile() {
+        const payload = this._serializeMapState(); // map-only serialize
+        const json = JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const fileName =
+            `map-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-` +
+            `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.shtr`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    // map-only: ground + boxes only
+    _serializeMapState() {
+        const cloneMesh = (mesh) => ({
+            vertices: (mesh.vertices || []).map(v => ({ x: v.x, y: v.y, z: v.z })),
+            faces: (mesh.faces || []).map(f => ({ v1: f.v1, v2: f.v2, v3: f.v3 })),
+        });
+
+        const groundObj = this._world._objects.find(o => o.isGround);
+
+        const boxItems = this._boxMeshes.map((mesh) => {
+            const obj = this._world._objects.find(o => o.mesh === mesh);
+            return {
+                mesh: cloneMesh(mesh),
+                color: obj?.color || '#8b6914',
+            };
+        });
+
+        return {
+            type: 'shooter-map',
+            version: 1,
+            savedAt: new Date().toISOString(),
+            ground: groundObj
+                ? {
+                    mesh: cloneMesh(groundObj.mesh),
+                    color: groundObj.color || '#ccc',
+                    isGround: true,
+                }
+                : null,
+            boxes: boxItems,
+        };
+    }
+
+    // map-only: replace world static geometry with uploaded map
+    _applySavedMapState(data) {
+        if (!data || typeof data !== 'object') return;
+        if (data.type !== 'shooter-map') return;
+
+        
+        // Remove current static map geometry (ground + boxes)
+        const existingGroundMeshes = this._world._objects.filter(o => o.isGround).map(o => o.mesh);
+        const toRemove = new Set([...existingGroundMeshes, ...this._boxMeshes]);
+        this._world._objects = this._world._objects.filter(o => !toRemove.has(o.mesh));
+
+        // Reset map-related arrays
+        this._boxMeshes = [];
+        this._floors = [];
+        this._ladders = [];
+
+        // Restore boxes and rebuild collision/LOS floors from box bounds
+        const getBounds = (mesh) => {
+            const xs = mesh.vertices.map(v => v.x);
+            const ys = mesh.vertices.map(v => v.y);
+            const zs = mesh.vertices.map(v => v.z);
+            return {
+                minX: Math.min(...xs), maxX: Math.max(...xs),
+                minY: Math.min(...ys), maxY: Math.max(...ys),
+                minZ: Math.min(...zs), maxZ: Math.max(...zs),
+            };
+        };
+
+        if (data.ground?.mesh && this._isValidMesh(data.ground.mesh)) {
+            this._world.add(data.ground.mesh, data.ground.color || '#ccc', true);
+        }
+
+        (data.boxes || []).forEach((item) => {
+            if (!item?.mesh || !this._isValidMesh(item.mesh)) return;
+            this._world.add(item.mesh, item.color || '#8b6914', false);
+            this._boxMeshes.push(item.mesh);
+
+            const xs = item.mesh.vertices.map(v => v.x);
+            const ys = item.mesh.vertices.map(v => v.y);
+            const zs = item.mesh.vertices.map(v => v.z);
+
+            this._floors.push({
+                minX: Math.min(...xs),
+                maxX: Math.max(...xs),
+                minZ: Math.min(...zs),
+                maxZ: Math.max(...zs),
+                topY: Math.max(...ys),
+            });
+        });
+
+        this._controller.setLadders(this._ladders);
+        this._controller.setFloors(this._floors);
+    }
+
+    _updateOrbs(delta) {
+        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
+        this._orbs.forEach(orb => {
+            if (!orb.alive) return;
+            const dx = orb.vx * delta;
+            const dy = orb.vy * delta;
+            const dz = orb.vz * delta;
+            if (orb.x + dx < minX || orb.x + dx > maxX) orb.vx *= -1;
+            if (orb.y + dy < minY || orb.y + dy > maxY) orb.vy *= -1;
+            if (orb.z + dz < minZ || orb.z + dz > maxZ) orb.vz *= -1;
+            orb.x += orb.vx * delta;
+            orb.y += orb.vy * delta;
+            orb.z += orb.vz * delta;
+            this._translateMesh(orb.mesh, orb.vx * delta, orb.vy * delta, orb.vz * delta);
+        });
+    }
+
+    _randomizeOrbVelocities() {
+        [...this._orbs, ...this._sniperOrbs].forEach(orb => {
+            if (!orb.alive) return;
+            const speed = (0.04 + Math.random() * 0.03) * 60;
+            const angle = Math.random() * Math.PI * 2;
+            orb.vx = Math.cos(angle) * speed;
+            orb.vz = Math.sin(angle) * speed;
+            orb.vy = (Math.random() - 0.5) * 0.02 * 60;
+        });
+    }
+
+    _buildSniperOrbs() {
+        this._sniperOrbs = ['#ff1111', '#ff6600'].map(glowColor => {
+            const x = -15 + Math.random() * 30;
+            const y = 1.5 + Math.random() * 2.5;
+            const z = -15 + Math.random() * 30;
+            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
+            this._world.add(mesh, '#ffffff');
+            const speed = (0.03 + Math.random() * 0.02) * 60;
+            const angle = Math.random() * Math.PI * 2;
+            return {
+                mesh, alive: true, color: glowColor,
+                x, y, z,
+                vx: Math.cos(angle) * speed,
+                vy: (Math.random() - 0.5) * 0.015 * 60,
+                vz: Math.sin(angle) * speed,
+            };
+        });
+    }
+
+    _updateSniperOrbs(delta) {
+        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
+        this._sniperOrbs.forEach(orb => {
+            if (!orb.alive) return;
+            const dx = orb.vx * delta;
+            const dy = orb.vy * delta;
+            const dz = orb.vz * delta;
+            if (orb.x + dx < minX || orb.x + dx > maxX) orb.vx *= -1;
+            if (orb.y + dy < minY || orb.y + dy > maxY) orb.vy *= -1;
+            if (orb.z + dz < minZ || orb.z + dz > maxZ) orb.vz *= -1;
+            orb.x += orb.vx * delta;
+            orb.y += orb.vy * delta;
+            orb.z += orb.vz * delta;
+            this._translateMesh(orb.mesh, orb.vx * delta, orb.vy * delta, orb.vz * delta);
+        });
+    }
+
+    _updateGrenades(delta) {
+        if (this._gameOver) {
+            this._grenadeProjectiles = [];
+            this._grenadeFragments = [];
+            return;
+        }
+
+        const GRAVITY = 12.0;
+        const GROUND_Y = 0;
+
+        this._grenadeProjectiles = this._grenadeProjectiles.filter(g => {
+            g.age += delta;
+            g.vy -= GRAVITY * delta;
+            g.x  += g.vx * delta;
+            g.y  += g.vy * delta;
+            g.z  += g.vz * delta;
+            g.life -= delta;
+
+            const shouldExplode =
+                g.life <= 0 ||
+                (g.age >= (g.armingDelay || 0) && (
+                    g.y <= GROUND_Y + g.radius ||
+                    this._isGrenadeNearAnyTarget(
+                        g.x, g.y, g.z,
+                        this._grenadeBlastRadius * this._grenadeProximityFactor
+                    )
+                ));
+
+            if (shouldExplode) {
+                this._explodeGrenade(g.x, Math.max(g.y, GROUND_Y + 0.05), g.z);
+                return false;
+            }
+            return true;
+        });
+
+        this._grenadeFragments = this._grenadeFragments.filter(f => {
+            f.vy -= GRAVITY * 0.8 * delta;
+            f.x  += f.vx * delta;
+            f.y  += f.vy * delta;
+            f.z  += f.vz * delta;
+            f.life -= delta;
+            if (f.y < GROUND_Y + 0.02) {
+                f.y   = GROUND_Y + 0.02;
+                f.vx *= 0.82;
+                f.vz *= 0.82;
+                f.vy *= -0.22;
+            }
+            return f.life > 0;
+        });
+    }
+ 
+    _handleThrowGrenade() {
+        if (document.pointerLockElement !== this._canvas) return;
+        if (this._gameOver || this._grenades <= 0) return;
+
+        const cam = this._world.renderer.camera;
+        const yaw   = cam.rotation.yaw   * Math.PI / 180;
+        const pitch = cam.rotation.pitch * Math.PI / 180;
+        const forward = {
+            x:  Math.sin(yaw) * Math.cos(pitch),
+            y: -Math.sin(pitch),
+            z:  Math.cos(yaw) * Math.cos(pitch),
+        };
+        const right = { x: Math.cos(yaw), y: 0, z: -Math.sin(yaw) };
+
+        const spawn = {
+            x: cam.position.x + forward.x * 0.9 + right.x * 0.15,
+            y: cam.position.y - 0.1,
+            z: cam.position.z + forward.z * 0.9 + right.z * 0.15,
+        };
+
+        this._grenades--;
+        this._grenadeProjectiles.push({
+            x: spawn.x,
+            y: spawn.y,
+            z: spawn.z,
+            vx: forward.x * this._grenadeThrowSpeed,
+            vy: forward.y * this._grenadePitchInfluence * 60 + this._grenadeArcHeight,
+            vz: forward.z * this._grenadeThrowSpeed,
+            radius: 0.18,
+            life: 4.0,
+            age: 0,
+            armingDelay: 0.18,
+        });
+
+        this._grenadeFragments.push({
+            x: spawn.x, y: spawn.y + 0.08, z: spawn.z,
+            vx: (forward.x * 0.2 + right.x * 0.25) * 60,
+            vy: 0.22 * 60,
+            vz: (forward.z * 0.2 + right.z * 0.25) * 60,
+            life: 75 / 60,
+            type: 'clip',
+        });
+    }
+
+    _spawnTrackingOrb() {
+        if (this._gameOver) return;
+        const cp = this._world.renderer.camera.position;
+        let x, z, attempts = 0;
+        do {
+            x = -18 + Math.random() * 36;
+            z = -18 + Math.random() * 34;
+            attempts++;
+        } while (attempts < 20 && Math.sqrt((x - cp.x) ** 2 + (z - cp.z) ** 2) < 8);
+        const y = 1.0 + Math.random() * 2.0;
+        const mesh = this._shapes.sphere(x, y, z, 0.18, 7, 10);
+        this._world.add(mesh, '#cc44ff');
+        const tSpeed = (0.04 + Math.random() * 0.03) * 60;
+        const tAngle = Math.random() * Math.PI * 2;
+        const orb = {
+            mesh, alive: true, tracking: false, x, y, z,
+            vx: Math.cos(tAngle) * tSpeed,
+            vy: (Math.random() - 0.5) * 0.02 * 60,
+            vz: Math.sin(tAngle) * tSpeed,
+        };
+        this._trackingOrbs.push(orb);
+        setTimeout(() => {
+            if (!orb.alive) return;
+            orb.alive = false;
+            this._world._objects = this._world._objects.filter(o => o.mesh !== orb.mesh);
+        }, 10000);
+    }
+
+    _updateTrackingOrbs(delta) {
+        if (this._gameOver || this._playerHealth <= 0) return;
+        const cp = this._world.renderer.camera.position;
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+        this._trackingOrbs.forEach(orb => {
+            if (!orb.alive) return;
+            if (!orb.tracking) {
+                const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
+                if (cam.z > 0) {
+                    const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
+                    if (proj && proj.x >= 0 && proj.x <= cw && proj.y >= 0 && proj.y <= ch) {
+                        if (this._hasLineOfSight(cp.x, cp.y, cp.z, orb.x, orb.y, orb.z)) {
+                            orb.tracking = true;
+                        }
+                    }
+                }
+            }
+            if (orb.tracking) {
+                const dx   = cp.x - orb.x;
+                const dy   = cp.y - orb.y;
+                const dz   = cp.z - orb.z;
+                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (dist < 0.7) {
+                    orb.alive = false;
+                    this._world._objects = this._world._objects.filter(o => o.mesh !== orb.mesh);
+                    this._playerHealth--;
+                    this._trackingHitTime = this._trackingHitTotal;
+                    if (this._onPlayerHit) this._onPlayerHit(this._playerHealth);
+                    if (this._playerHealth <= 0) {
+                        this._gameOver = true;
+                        if (this._onPlayerDead) this._onPlayerDead();
+                    }
+                    return;
+                }
+                const speed = 4.2;
+                orb.vx = (dx / dist) * speed;
+                orb.vy = (dy / dist) * speed;
+                orb.vz = (dz / dist) * speed;
+            } else {
+                const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
+                const dx = orb.vx * delta;
+                const dy = orb.vy * delta;
+                const dz = orb.vz * delta;
+                if (orb.x + dx < minX || orb.x + dx > maxX) orb.vx *= -1;
+                if (orb.y + dy < minY || orb.y + dy > maxY) orb.vy *= -1;
+                if (orb.z + dz < minZ || orb.z + dz > maxZ) orb.vz *= -1;
+            }
+            orb.x += orb.vx * delta;
+            orb.y += orb.vy * delta;
+            orb.z += orb.vz * delta;
+            this._translateMesh(orb.mesh, orb.vx * delta, orb.vy * delta, orb.vz * delta);
+        });
+        this._trackingOrbs = this._trackingOrbs.filter(o => o.alive);
+    }
+
+    _drawAmmoBar(ctx) {
+        const cw = this._canvas.width;
+        const BAR_W  = 7;
+        const BAR_H  = 20;
+        const GAP    = 3;
+        const totalW = this._maxRounds * (BAR_W + GAP) - GAP;
+        const startX = (cw - totalW) / 2;
+        const y      = 14;
+
+        ctx.save();
+        ctx.font      = 'bold 10px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.textAlign = 'center';
+        ctx.fillText('AMMO', cw / 2, y - 2);
+
+        for (let i = 0; i < this._maxRounds; i++) {
+            const bx     = startX + i * (BAR_W + GAP);
+            const filled = i < this._rounds;
+            ctx.fillStyle = filled
+                ? (this._reloading ? 'rgba(200,200,50,0.35)' : '#dddd22')
+                : 'rgba(40,40,40,0.8)';
+            ctx.fillRect(bx, y, BAR_W, BAR_H);
+            ctx.strokeStyle = 'rgba(180,180,180,0.28)';
+            ctx.lineWidth   = 0.5;
+            ctx.strokeRect(bx, y, BAR_W, BAR_H);
+        }
+
+        if (this._reloading) {
+            const prog = this._reloadProgress / this._reloadTotal;
+            const barY = y + BAR_H + 4;
+            ctx.fillStyle = 'rgba(30,30,30,0.7)';
+            ctx.fillRect(startX, barY, totalW, 4);
+            ctx.fillStyle = '#ffee44';
+            ctx.fillRect(startX, barY, totalW * prog, 4);
+            ctx.fillStyle  = 'rgba(255,238,68,0.85)';
+            ctx.font       = 'bold 10px monospace';
+            ctx.textAlign  = 'center';
+            ctx.fillText('RELOADING\u2026', cw / 2, barY + 14);
+        } else if (this._rounds === 0) {
+            ctx.fillStyle = 'rgba(255,60,60,0.92)';
+            ctx.font      = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('PRESS X TO RELOAD', cw / 2, y + BAR_H + 16);
+        }
+
+        if (this._noAmmoTime > 0) {
+            const alpha = Math.min(1, this._noAmmoTime / this._noAmmoTotal);
+            const ch    = this._canvas.height;
+            ctx.font        = 'bold 56px monospace';
+            ctx.textAlign   = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.75)';
+            ctx.shadowBlur  = 14;
+            ctx.fillStyle   = `rgba(255, 140, 0, ${alpha})`;
+            ctx.fillText('RELOAD', cw / 2, ch / 2 - 60);
+            ctx.shadowBlur  = 0;
+        }
+
+        ctx.restore();
+    }
+
+    _drawTrackingHit(ctx) {
+        if (this._trackingHitTime <= 0) return;
+        const cw = this._canvas.width;
+        const ch = this._canvas.height;
+        const alpha = this._trackingHitTime / this._trackingHitTotal;
+        ctx.save();
+        const vg = ctx.createRadialGradient(cw / 2, ch / 2, ch * 0.18, cw / 2, ch / 2, ch * 0.85);
+        vg.addColorStop(0,   'rgba(160,0,0,0)');
+        vg.addColorStop(0.5, `rgba(200,0,0,${alpha * 0.38})`);
+        vg.addColorStop(1,   `rgba(255,0,0,${alpha * 0.80})`);
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, cw, ch);
+        const size = Math.floor(64 + 20 * Math.sin(alpha * Math.PI));
+        ctx.font        = `bold ${size}px monospace`;
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#ff2200';
+        ctx.shadowBlur  = 28;
+        ctx.fillStyle   = `rgba(255,255,255,${alpha})`;
+        ctx.fillText('HIT', cw / 2, ch / 2 - 80);
+        ctx.shadowBlur  = 0;
+        ctx.restore();
+    }
+
+
+
+    /** Populate the world: ground + level + targets. Call before start(). */
+    build() {
+        this._world.add(this._shapes.ground(50), '#ccc', true);
+        this._buildLevel();
+        this._buildTargets();
+        this._buildOrbs();
+        this._buildSniperOrbs();
+        this._buildTrashcans();
+        this._controller.setLadders(this._ladders);
+        this._controller.setFloors(this._floors);
+    }
+
+
     /** Remove event listeners. Call on unmount. */
     stop() {
         this._canvas.removeEventListener('pointerdown', this._handlePointerDown);
@@ -229,6 +724,12 @@ export class ShooterGame {
         if (this._sniperFireInterval) clearInterval(this._sniperFireInterval);
         if (this._sniperSpawnInterval) clearInterval(this._sniperSpawnInterval);
         if (this._trackingOrbSpawnInterval) clearInterval(this._trackingOrbSpawnInterval);
+
+        if (this._mapFileInput) {
+            this._mapFileInput.removeEventListener('change', this._handleMapFileChosen);
+            this._mapFileInput.remove();
+            this._mapFileInput = null;
+        }
     }
 
     // ── Private: level ────────────────────────────────────────────────────────
@@ -314,51 +815,6 @@ export class ShooterGame {
         });
     }
 
-    _buildOrbs() {
-        const colors = ['#ff44ff', '#44ffff', '#ffff44', '#ff8844', '#88ff44'];
-        this._orbs = colors.map(color => {
-            const x = -18 + Math.random() * 36;
-            const y = 1.2 + Math.random() * 3.0;
-            const z = -18 + Math.random() * 34;
-            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
-            this._world.add(mesh, color);
-            const speed = 0.04 + Math.random() * 0.03;
-            const angle = Math.random() * Math.PI * 2;
-            return {
-                mesh, alive: true, color,
-                x, y, z,
-                vx: Math.cos(angle) * speed,
-                vy: (Math.random() - 0.5) * 0.02,
-                vz: Math.sin(angle) * speed,
-            };
-        });
-    }
-
-    _updateOrbs() {
-        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
-        this._orbs.forEach(orb => {
-            if (!orb.alive) return;
-            if (orb.x + orb.vx < minX || orb.x + orb.vx > maxX) orb.vx *= -1;
-            if (orb.y + orb.vy < minY || orb.y + orb.vy > maxY) orb.vy *= -1;
-            if (orb.z + orb.vz < minZ || orb.z + orb.vz > maxZ) orb.vz *= -1;
-            orb.x += orb.vx;
-            orb.y += orb.vy;
-            orb.z += orb.vz;
-            this._translateMesh(orb.mesh, orb.vx, orb.vy, orb.vz);
-        });
-    }
-
-    _randomizeOrbVelocities() {
-        [...this._orbs, ...this._sniperOrbs].forEach(orb => {
-            if (!orb.alive) return;
-            const speed = 0.04 + Math.random() * 0.03;
-            const angle = Math.random() * Math.PI * 2;
-            orb.vx = Math.cos(angle) * speed;
-            orb.vz = Math.sin(angle) * speed;
-            orb.vy = (Math.random() - 0.5) * 0.02;
-        });
-    }
-
     _maybeSpawnSniperOrb() {
         if (this._gameOver) return;
         const anyAlive = this._sniperOrbs.some(o => o.alive);
@@ -404,29 +860,31 @@ export class ShooterGame {
         });
     }
 
-    _drawTrashcanFires(ctx) {
+        _drawTrashcanFires(ctx) {
         const cw = this._canvas.width;
+
         this._trashcans.forEach(tc => {
             const cam = this._world.renderer.worldToCamera(tc.x, tc.y, tc.z);
-            if (cam.z <= 0) return;
+            if (!cam || !Number.isFinite(cam.z) || cam.z <= 0) return;
+
             const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-            if (!proj) return;
-            // Hide fire when a wall is between camera and the can
+            if (!proj || !Number.isFinite(proj.x) || !Number.isFinite(proj.y)) return;
+
             const cp = this._world.renderer.camera.position;
             if (!this._hasLineOfSight(cp.x, cp.y, cp.z, tc.x, tc.y, tc.z)) return;
 
             const { x, y } = proj;
-            const ds = 5.0 / Math.max(cam.z, 0.5); // distance scale
+            const ds = 5.0 / Math.max(cam.z, 0.5);
+            if (!Number.isFinite(ds)) return;
 
             ctx.save();
-            // Clip to above the rim so fire appears to rise OUT of the can
             ctx.beginPath();
             ctx.rect(0, 0, cw, y);
             ctx.clip();
 
-            // ── Layer 1: hot white/yellow base (centered at rim, wide) ──
             const f1 = 0.8 + Math.random() * 0.4;
             const r1 = 26 * ds * f1;
+            if (!this._isFiniteRadius(r1)) { ctx.restore(); return; }
             const g1 = ctx.createRadialGradient(x, y, 0, x, y, r1);
             g1.addColorStop(0,    'rgba(255,255,210,0.95)');
             g1.addColorStop(0.18, 'rgba(255,230,80,0.88)');
@@ -438,11 +896,11 @@ export class ShooterGame {
             ctx.fillStyle = g1;
             ctx.fill();
 
-            // ── Layer 2: orange mid-tongue (shifted up, jittered) ──
             const f2 = 0.7 + Math.random() * 0.5;
             const jx2 = (Math.random() - 0.5) * 6 * ds;
             const gy2 = y - 16 * ds * f2;
             const r2  = 16 * ds * f2;
+            if (!Number.isFinite(jx2) || !Number.isFinite(gy2) || !this._isFiniteRadius(r2)) { ctx.restore(); return; }
             const g2 = ctx.createRadialGradient(x + jx2, gy2, 0, x + jx2, gy2, r2);
             g2.addColorStop(0,    'rgba(255,200,50,0.92)');
             g2.addColorStop(0.35, 'rgba(255,100,10,0.65)');
@@ -453,11 +911,11 @@ export class ShooterGame {
             ctx.fillStyle = g2;
             ctx.fill();
 
-            // ── Layer 3: red tip — tallest, smallest, most jitter ──
             const f3 = 0.6 + Math.random() * 0.55;
             const jx3 = (Math.random() - 0.5) * 5 * ds;
             const gy3 = y - 32 * ds * f3;
             const r3  = 10 * ds * f3;
+            if (!Number.isFinite(jx3) || !Number.isFinite(gy3) || !this._isFiniteRadius(r3)) { ctx.restore(); return; }
             const g3 = ctx.createRadialGradient(x + jx3, gy3, 0, x + jx3, gy3, r3);
             g3.addColorStop(0,    'rgba(255,150,30,0.80)');
             g3.addColorStop(0.40, 'rgba(220,50,0,0.40)');
@@ -471,40 +929,7 @@ export class ShooterGame {
         });
     }
 
-    _buildSniperOrbs() {
-        this._sniperOrbs = ['#ff1111', '#ff6600'].map(glowColor => {
-            const x = -15 + Math.random() * 30;
-            const y = 1.5 + Math.random() * 2.5;
-            const z = -15 + Math.random() * 30;
-            const mesh = this._shapes.sphere(x, y, z, 0.1, 6, 8);
-            this._world.add(mesh, '#ffffff'); // white sphere
-            const speed = 0.03 + Math.random() * 0.02;
-            const angle = Math.random() * Math.PI * 2;
-            return {
-                mesh, alive: true, color: glowColor,
-                x, y, z,
-                vx: Math.cos(angle) * speed,
-                vy: (Math.random() - 0.5) * 0.015,
-                vz: Math.sin(angle) * speed,
-            };
-        });
-    }
-
-    _updateSniperOrbs() {
-        const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
-        this._sniperOrbs.forEach(orb => {
-            if (!orb.alive) return;
-            if (orb.x + orb.vx < minX || orb.x + orb.vx > maxX) orb.vx *= -1;
-            if (orb.y + orb.vy < minY || orb.y + orb.vy > maxY) orb.vy *= -1;
-            if (orb.z + orb.vz < minZ || orb.z + orb.vz > maxZ) orb.vz *= -1;
-            orb.x += orb.vx;
-            orb.y += orb.vy;
-            orb.z += orb.vz;
-            this._translateMesh(orb.mesh, orb.vx, orb.vy, orb.vz);
-        });
-    }
-
-    _fireSnipers() {
+     _fireSnipers() {
         if (this._gameOver || this._playerHealth <= 0) return;
         const cw = this._canvas.width;
         const ch = this._canvas.height;
@@ -647,126 +1072,7 @@ export class ShooterGame {
     _handleContextMenu(event) {
         event.preventDefault();
     }
-
-    _handleThrowGrenade() {
-        if (document.pointerLockElement !== this._canvas) return;
-        if (this._gameOver || this._grenades <= 0) return;
-
-        const cam = this._world.renderer.camera;
-        const yaw = cam.rotation.yaw * Math.PI / 180;
-        const pitch = cam.rotation.pitch * Math.PI / 180;
-        const forward = {
-            x: Math.sin(yaw) * Math.cos(pitch),
-            y: -Math.sin(pitch),
-            z: Math.cos(yaw) * Math.cos(pitch),
-        };
-        const right = {
-            x: Math.cos(yaw),
-            y: 0,
-            z: -Math.sin(yaw),
-        };
-
-        const spawn = {
-            x: cam.position.x + forward.x * 0.9 + right.x * 0.15,
-            y: cam.position.y - 0.1,
-            z: cam.position.z + forward.z * 0.9 + right.z * 0.15,
-        };
-
-        this._grenades--;
-        this._grenadeProjectiles.push({
-            x: spawn.x,
-            y: spawn.y,
-            z: spawn.z,
-            vx: forward.x * this._grenadeThrowSpeed,
-            vy: forward.y * this._grenadePitchInfluence + this._grenadeArcHeight,
-            vz: forward.z * this._grenadeThrowSpeed,
-            radius: 0.18,
-            life: 240,
-        });
-
-        // Simulate the pin/clip springing out.
-        this._grenadeFragments.push({
-            x: spawn.x,
-            y: spawn.y + 0.08,
-            z: spawn.z,
-            vx: forward.x * 0.2 + right.x * 0.25,
-            vy: 0.22,
-            vz: forward.z * 0.2 + right.z * 0.25,
-            life: 75,
-            type: 'clip',
-        });
-    }
-
-    _updateGrenades() {
-        if (this._gameOver) {
-            this._grenadeProjectiles = [];
-            this._grenadeFragments = [];
-            return;
-        }
-
-        const GRAVITY = 0.012;
-        const GROUND_Y = 0;
-
-        this._grenadeProjectiles = this._grenadeProjectiles.filter(g => {
-            g.vy -= GRAVITY;
-            g.x += g.vx;
-            g.y += g.vy;
-            g.z += g.vz;
-            g.life--;
-
-            const shouldExplode =
-                g.life <= 0 ||
-                g.y <= GROUND_Y + g.radius ||
-                this._isGrenadeNearAnyTarget(g.x, g.y, g.z, this._grenadeBlastRadius * this._grenadeProximityFactor);
-
-            if (shouldExplode) {
-                this._explodeGrenade(g.x, Math.max(g.y, GROUND_Y + 0.05), g.z);
-                return false;
-            }
-            return true;
-        });
-
-        this._grenadeFragments = this._grenadeFragments.filter(f => {
-            f.vy -= GRAVITY * 0.8;
-            f.x += f.vx;
-            f.y += f.vy;
-            f.z += f.vz;
-            f.life--;
-            if (f.y < GROUND_Y + 0.02) {
-                f.y = GROUND_Y + 0.02;
-                f.vx *= 0.82;
-                f.vz *= 0.82;
-                f.vy *= -0.22;
-            }
-            return f.life > 0;
-        });
-    }
-
-    _isGrenadeNearAnyTarget(x, y, z, radius) {
-        const within = (tx, ty, tz) => {
-            const dx = tx - x;
-            const dy = ty - y;
-            const dz = tz - z;
-            return (dx * dx + dy * dy + dz * dz) <= (radius * radius);
-        };
-
-        for (const t of this._targets) {
-            if (!t.alive) continue;
-            const c = this._world.renderer.getObjectCenter(t.mesh);
-            if (within(c.x, c.y, c.z)) return true;
-        }
-        for (const o of this._orbs) {
-            if (o.alive && within(o.x, o.y, o.z)) return true;
-        }
-        for (const o of this._sniperOrbs) {
-            if (o.alive && within(o.x, o.y, o.z)) return true;
-        }
-        for (const o of this._trackingOrbs) {
-            if (o.alive && within(o.x, o.y, o.z)) return true;
-        }
-        return false;
-    }
-
+    
     _explodeGrenade(x, y, z) {
         this._explosions.push(new Explosion(this._world, x, y, z, '#ff8800'));
         this._smokes.push(new SmokeEffect(x, y, z, this._world.renderer, { count: 26, tint: '#ffaa55' }));
@@ -827,10 +1133,20 @@ export class ShooterGame {
 
     // ── Private: shooting ─────────────────────────────────────────────────────
 
+    // ...existing code...
+_isValidMesh(mesh) {
+    if (!mesh || !Array.isArray(mesh.vertices) || !Array.isArray(mesh.faces)) return false;
+    return mesh.vertices.every((v) =>
+        v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)
+    );
+}
+// ...existing code...
+
+
     _handleShoot(fromGamepad = false) {
         if (!fromGamepad && document.pointerLockElement !== this._canvas) return;
         if (this._reloading || this._rounds <= 0) {
-            if (this._rounds <= 0) this._noAmmoFlash = 90; // ~1.5 s
+            if (this._rounds <= 0) this._noAmmoTime = this._noAmmoTotal;
             return;
         }
         this._rounds--;
@@ -838,9 +1154,10 @@ export class ShooterGame {
             this._shotAudio.currentTime = 0;
             this._shotAudio.play().catch(() => {});
         }
-        this._flashFrames = 4; // show flash for 4 frames (~66ms)
+        this._flashTime = this._flashTotal;
         this._gunRecoilX = Math.max(this._gunRecoilX, this._gunKickX);
         this._gunRecoilY = Math.max(this._gunRecoilY, this._gunKickY);
+
         const cw = this._canvas.width;
         const ch = this._canvas.height;
 
@@ -1041,13 +1358,19 @@ export class ShooterGame {
 
     _drawGrenades(ctx) {
         const drawDot = (sx, sy, radius, color, glow) => {
-            const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius * 2.2);
+            if (!Number.isFinite(sx) || !Number.isFinite(sy) || !this._isFiniteRadius(radius)) return;
+
+            const outer = radius * 2.2;
+            if (!this._isFiniteRadius(outer)) return;
+
+            const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, outer);
             g.addColorStop(0, color);
             g.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.beginPath();
-            ctx.arc(sx, sy, radius * 2.2, 0, Math.PI * 2);
+            ctx.arc(sx, sy, outer, 0, Math.PI * 2);
             ctx.fillStyle = g;
             ctx.fill();
+
             ctx.beginPath();
             ctx.arc(sx, sy, radius, 0, Math.PI * 2);
             ctx.fillStyle = glow;
@@ -1056,19 +1379,27 @@ export class ShooterGame {
 
         this._grenadeProjectiles.forEach(g => {
             const cam = this._world.renderer.worldToCamera(g.x, g.y, g.z);
-            if (cam.z <= 0) return;
+            if (!cam || !Number.isFinite(cam.z) || cam.z <= 0) return;
+
             const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-            if (!proj) return;
+            if (!proj || !Number.isFinite(proj.x) || !Number.isFinite(proj.y)) return;
+
             const r = Math.max(3, Math.min(12, 140 / cam.z));
+            if (!this._isFiniteRadius(r)) return;
+
             drawDot(proj.x, proj.y, r, 'rgba(120,220,120,0.7)', '#7ee27e');
         });
 
         this._grenadeFragments.forEach(f => {
             const cam = this._world.renderer.worldToCamera(f.x, f.y, f.z);
-            if (cam.z <= 0) return;
+            if (!cam || !Number.isFinite(cam.z) || cam.z <= 0) return;
+
             const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-            if (!proj) return;
+            if (!proj || !Number.isFinite(proj.x) || !Number.isFinite(proj.y)) return;
+
             const s = Math.max(2, Math.min(7, 90 / cam.z));
+            if (!this._isFiniteRadius(s)) return;
+
             ctx.save();
             ctx.translate(proj.x, proj.y);
             ctx.rotate((75 - f.life) * 0.18);
@@ -1078,23 +1409,42 @@ export class ShooterGame {
         });
     }
 
+     _isFiniteRadius(value) {
+        return Number.isFinite(value) && value > 0;
+    }
+
     _drawSniperOrbGlows(ctx) {
         this._sniperOrbs.forEach(orb => {
             if (!orb.alive) return;
             const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
-            if (cam.z <= 0) return;
+            if (!cam || !this._isFiniteNumber(cam.z) || cam.z <= 0) return;
+
             const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-            if (!proj) return;
+            if (!this._isFinitePoint2D(proj)) return;
+
             const { x, y } = proj;
-            const g = ctx.createRadialGradient(x, y, 0, x, y, 28);
-            g.addColorStop(0,   'rgba(255,60,60,0.7)');
-            g.addColorStop(0.35,'rgba(255,0,0,0.4)');
-            g.addColorStop(1,   'rgba(255,0,0,0)');
+            const radius = 28;
+            if (!this._isFiniteNumber(radius) || radius <= 0) return;
+
+            const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            g.addColorStop(0, 'rgba(255,60,60,0.7)');
+            g.addColorStop(0.35, 'rgba(255,0,0,0.4)');
+            g.addColorStop(1, 'rgba(255,0,0,0)');
             ctx.beginPath();
-            ctx.arc(x, y, 28, 0, Math.PI * 2);
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = g;
             ctx.fill();
         });
+    }
+
+     _isFiniteNumber(value) {
+        return Number.isFinite(value);
+    }
+
+    _isFinitePoint2D(point) {
+        return !!point &&
+            this._isFiniteNumber(point.x) &&
+            this._isFiniteNumber(point.y);
     }
 
     _drawSniperOrbIndicators(ctx) {
@@ -1154,51 +1504,7 @@ export class ShooterGame {
 
     // ── Private: gun overlay ──────────────────────────────────────────────────
 
-    _drawMuzzleFlash(ctx) {
-        const cw = this._canvas.width;
-        const ch = this._canvas.height;
-        const tipX = cw / 2 + 20;
-        const tipY = ch / 2 + 80;
-        const alpha = this._flashFrames / 4; // fade out as frames count down
-
-        // Outer glow bloom
-        const bloom = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 38);
-        bloom.addColorStop(0,   `rgba(255,240,160,${alpha * 0.9})`);
-        bloom.addColorStop(0.3, `rgba(255,160,40,${alpha * 0.6})`);
-        bloom.addColorStop(1,   `rgba(255,80,0,0)`);
-        ctx.beginPath();
-        ctx.arc(tipX, tipY, 38, 0, Math.PI * 2);
-        ctx.fillStyle = bloom;
-        ctx.fill();
-
-        // Bright core
-        const core = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 12);
-        core.addColorStop(0,   `rgba(255,255,220,${alpha})`);
-        core.addColorStop(0.5, `rgba(255,220,80,${alpha * 0.8})`);
-        core.addColorStop(1,   `rgba(255,120,0,0)`);
-        ctx.beginPath();
-        ctx.arc(tipX, tipY, 12, 0, Math.PI * 2);
-        ctx.fillStyle = core;
-        ctx.fill();
-
-        // 4 spiky rays
-        ctx.save();
-        ctx.translate(tipX, tipY);
-        ctx.globalAlpha = alpha * 0.7;
-        for (let i = 0; i < 4; i++) {
-            ctx.rotate(Math.PI / 4);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(-3, 28);
-            ctx.lineTo(0, 44);
-            ctx.lineTo(3, 28);
-            ctx.closePath();
-            ctx.fillStyle = '#ffdd44';
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-        ctx.restore();
-    }
+C
 
     _drawGun(ctx) {
         const cw = this._canvas.width;
@@ -1219,69 +1525,6 @@ export class ShooterGame {
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(this._gunOverlayImg, drawX, drawY, drawW, drawH);
-        ctx.restore();
-    }
-
-    _drawAmmoBar(ctx) {
-        const cw = this._canvas.width;
-        const BAR_W  = 7;
-        const BAR_H  = 20;
-        const GAP    = 3;
-        const totalW = this._maxRounds * (BAR_W + GAP) - GAP;
-        const startX = (cw - totalW) / 2;
-        const y      = 14;
-
-        ctx.save();
-        ctx.font      = 'bold 10px monospace';
-        ctx.fillStyle = 'rgba(255,255,255,0.65)';
-        ctx.textAlign = 'center';
-        ctx.fillText('AMMO', cw / 2, y - 2);
-
-        for (let i = 0; i < this._maxRounds; i++) {
-            const bx     = startX + i * (BAR_W + GAP);
-            const filled = i < this._rounds;
-            ctx.fillStyle = filled
-                ? (this._reloading ? 'rgba(200,200,50,0.35)' : '#dddd22')
-                : 'rgba(40,40,40,0.8)';
-            ctx.fillRect(bx, y, BAR_W, BAR_H);
-            ctx.strokeStyle = 'rgba(180,180,180,0.28)';
-            ctx.lineWidth   = 0.5;
-            ctx.strokeRect(bx, y, BAR_W, BAR_H);
-        }
-
-        if (this._reloading) {
-            // Reload progress bar
-            const prog = this._reloadProgress / this._reloadTotal;
-            const barY = y + BAR_H + 4;
-            ctx.fillStyle = 'rgba(30,30,30,0.7)';
-            ctx.fillRect(startX, barY, totalW, 4);
-            ctx.fillStyle = '#ffee44';
-            ctx.fillRect(startX, barY, totalW * prog, 4);
-            ctx.fillStyle  = 'rgba(255,238,68,0.85)';
-            ctx.font       = 'bold 10px monospace';
-            ctx.textAlign  = 'center';
-            ctx.fillText('RELOADING\u2026', cw / 2, barY + 14);
-        } else if (this._rounds === 0) {
-            ctx.fillStyle = 'rgba(255,60,60,0.92)';
-            ctx.font      = 'bold 11px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('PRESS X TO RELOAD', cw / 2, y + BAR_H + 16);
-        }
-
-        // Big RELOAD flash when player tries to fire on empty
-        if (this._noAmmoFlash > 0) {
-            const alpha = Math.min(1, this._noAmmoFlash / 20);
-            const ch    = this._canvas.height;
-            ctx.font        = 'bold 56px monospace';
-            ctx.textAlign   = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,0.75)';
-            ctx.shadowBlur  = 14;
-            ctx.fillStyle   = `rgba(255, 140, 0, ${alpha})`;
-            ctx.fillText('RELOAD', cw / 2, ch / 2 - 60);
-            ctx.shadowBlur  = 0;
-            this._noAmmoFlash--;
-        }
-
         ctx.restore();
     }
 
@@ -1344,103 +1587,22 @@ export class ShooterGame {
         ctx.restore();
     }
 
-    _spawnTrackingOrb() {
-        if (this._gameOver) return;
-        // Spawn at a random position at least 8 units from the player
-        const cp = this._world.renderer.camera.position;
-        let x, z, attempts = 0;
-        do {
-            x = -18 + Math.random() * 36;
-            z = -18 + Math.random() * 34;
-            attempts++;
-        } while (attempts < 20 && Math.sqrt((x - cp.x) ** 2 + (z - cp.z) ** 2) < 8);
-        const y = 1.0 + Math.random() * 2.0;
-        const mesh = this._shapes.sphere(x, y, z, 0.18, 7, 10);
-        this._world.add(mesh, '#cc44ff');
-        const tSpeed = 0.04 + Math.random() * 0.03;
-        const tAngle = Math.random() * Math.PI * 2;
-        const orb = {
-            mesh, alive: true, tracking: false, x, y, z,
-            vx: Math.cos(tAngle) * tSpeed,
-            vy: (Math.random() - 0.5) * 0.02,
-            vz: Math.sin(tAngle) * tSpeed,
-        };
-        this._trackingOrbs.push(orb);
-        // Auto-despawn after 10 s if it never hits the player
-        setTimeout(() => {
-            if (!orb.alive) return;
-            orb.alive = false;
-            this._world._objects = this._world._objects.filter(o => o.mesh !== orb.mesh);
-        }, 10000);
-    }
-
-    _updateTrackingOrbs() {
-        if (this._gameOver || this._playerHealth <= 0) return;
-        const cp = this._world.renderer.camera.position;
-        const cw = this._canvas.width;
-        const ch = this._canvas.height;
-        this._trackingOrbs.forEach(orb => {
-            if (!orb.alive) return;
-            // Activate tracking when the orb is visible AND has line of sight
-            if (!orb.tracking) {
-                const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
-                if (cam.z > 0) {
-                    const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-                    if (proj && proj.x >= 0 && proj.x <= cw && proj.y >= 0 && proj.y <= ch) {
-                        if (this._hasLineOfSight(cp.x, cp.y, cp.z, orb.x, orb.y, orb.z)) {
-                            orb.tracking = true;
-                        }
-                    }
-                }
-            }
-            if (orb.tracking) {
-                const dx = cp.x - orb.x;
-                const dy = cp.y - orb.y;
-                const dz = cp.z - orb.z;
-                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                // Collision — player takes a hit
-                if (dist < 0.7) {
-                    orb.alive = false;
-                    this._world._objects = this._world._objects.filter(o => o.mesh !== orb.mesh);
-                    this._playerHealth--;
-                    this._trackingHitFlash = 40;
-                    if (this._onPlayerHit) this._onPlayerHit(this._playerHealth);
-                    if (this._playerHealth <= 0) {
-                        this._gameOver = true;
-                        if (this._onPlayerDead) this._onPlayerDead();
-                    }
-                    return;
-                }
-                const speed = 0.07;
-                orb.vx = (dx / dist) * speed;
-                orb.vy = (dy / dist) * speed;
-                orb.vz = (dz / dist) * speed;
-            } else {
-                // Wander like regular orbs until spotted
-                const minX = -21, maxX = 21, minZ = -21, maxZ = 19, minY = 1.0, maxY = 4.5;
-                if (orb.x + orb.vx < minX || orb.x + orb.vx > maxX) orb.vx *= -1;
-                if (orb.y + orb.vy < minY || orb.y + orb.vy > maxY) orb.vy *= -1;
-                if (orb.z + orb.vz < minZ || orb.z + orb.vz > maxZ) orb.vz *= -1;
-            }
-            orb.x += orb.vx;
-            orb.y += orb.vy;
-            orb.z += orb.vz;
-            this._translateMesh(orb.mesh, orb.vx, orb.vy, orb.vz);
-        });
-        this._trackingOrbs = this._trackingOrbs.filter(o => o.alive);
-    }
 
     _drawTrackingOrbGlows(ctx) {
         const t = Date.now();
         this._trackingOrbs.forEach(orb => {
             if (!orb.alive) return;
             const cam = this._world.renderer.worldToCamera(orb.x, orb.y, orb.z);
-            if (cam.z <= 0) return;
+            if (!cam || !this._isFiniteNumber(cam.z) || cam.z <= 0) return;
+
             const proj = this._world.renderer.project3DTo2D(cam.x, cam.y, cam.z);
-            if (!proj) return;
+            if (!this._isFinitePoint2D(proj)) return;
+
             const { x, y } = proj;
             const pulse = 0.6 + 0.4 * Math.sin(t / (orb.tracking ? 70 : 350));
             const radius = (orb.tracking ? 44 : 22) * pulse;
+            if (!this._isFiniteNumber(radius) || radius <= 0) return;
+
             const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
             if (orb.tracking) {
                 g.addColorStop(0,    'rgba(255,100,255,0.90)');
@@ -1459,30 +1621,32 @@ export class ShooterGame {
         });
     }
 
-    _drawTrackingHit(ctx) {
-        if (this._trackingHitFlash <= 0) return;
-        const cw = this._canvas.width;
-        const ch = this._canvas.height;
-        const alpha = this._trackingHitFlash / 40;
-        ctx.save();
-        // Red vignette burst from edges
-        const vg = ctx.createRadialGradient(cw / 2, ch / 2, ch * 0.18, cw / 2, ch / 2, ch * 0.85);
-        vg.addColorStop(0,   'rgba(160,0,0,0)');
-        vg.addColorStop(0.5, `rgba(200,0,0,${alpha * 0.38})`);
-        vg.addColorStop(1,   `rgba(255,0,0,${alpha * 0.80})`);
-        ctx.fillStyle = vg;
-        ctx.fillRect(0, 0, cw, ch);
-        // "HIT" text — punchy scale-in then fade
-        const size = Math.floor(64 + 20 * Math.sin(alpha * Math.PI));
-        ctx.font        = `bold ${size}px monospace`;
-        ctx.textAlign   = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#ff2200';
-        ctx.shadowBlur  = 28;
-        ctx.fillStyle   = `rgba(255,255,255,${alpha})`;
-        ctx.fillText('HIT', cw / 2, ch / 2 - 80);
-        ctx.shadowBlur  = 0;
-        ctx.restore();
-        this._trackingHitFlash--;
+    _isGrenadeNearAnyTarget(x, y, z, radius) {
+        const within = (tx, ty, tz) => {
+            const dx = tx - x;
+            const dy = ty - y;
+            const dz = tz - z;
+            return (dx * dx + dy * dy + dz * dz) <= (radius * radius);
+        };
+
+        for (const t of this._targets) {
+            if (!t.alive) continue;
+            const c = this._world.renderer.getObjectCenter(t.mesh);
+            if (within(c.x, c.y, c.z)) return true;
+        }
+
+        for (const o of this._orbs) {
+            if (o.alive && within(o.x, o.y, o.z)) return true;
+        }
+
+        for (const o of this._sniperOrbs) {
+            if (o.alive && within(o.x, o.y, o.z)) return true;
+        }
+
+        for (const o of this._trackingOrbs) {
+            if (o.alive && within(o.x, o.y, o.z)) return true;
+        }
+
+        return false;
     }
 }
