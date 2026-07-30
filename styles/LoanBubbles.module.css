@@ -118,6 +118,12 @@
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
 }
 
+.overallSummary {
+  margin-top: 0;
+  background: #1f2937;
+  justify-content: center;
+}
+
 .totalName {
   font-weight: bold;
   font-size: 13px;

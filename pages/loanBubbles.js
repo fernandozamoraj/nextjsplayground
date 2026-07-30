@@ -10,6 +10,38 @@ const initialFormState = {
   rate: ''
 };
 
+const calculateSummaryTotals = (entries) => {
+  const totalPrincipal = entries.reduce((sum, entry) => sum + entry.principal, 0);
+  const totalPayment = entries.reduce((sum, entry) => sum + entry.payment, 0);
+  const weightedAverageRate = totalPrincipal > 0
+    ? entries.reduce((sum, entry) => sum + (entry.principal / totalPrincipal) * entry.rate, 0)
+    : 0;
+
+  return {
+    totalPrincipal,
+    totalPayment,
+    weightedAverageRate
+  };
+};
+
+const SummaryBubble = ({ title, totals, formatMoney, formatPercent, className = '' }) => (
+  <div className={`${styles.totalsRow} ${className}`.trim()}>
+    <div className={styles.totalName}>{title}</div>
+    <div className={styles.field}>
+      <span className={styles.label}>Principal</span>
+      <span className={styles.value}>{formatMoney(totals.totalPrincipal)}</span>
+    </div>
+    <div className={styles.field}>
+      <span className={styles.label}>Monthly</span>
+      <span className={styles.value}>{formatMoney(totals.totalPayment)}</span>
+    </div>
+    <div className={styles.field}>
+      <span className={styles.label}>Rate</span>
+      <span className={styles.value}>{formatPercent(totals.weightedAverageRate)}</span>
+    </div>
+  </div>
+);
+
 const LoanBubbles = () => {
   const [entries, setEntries] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -56,12 +88,9 @@ const LoanBubbles = () => {
 
   const leftEntries = entries.filter((entry) => entry.side === 'left');
   const rightEntries = entries.filter((entry) => entry.side === 'right');
-
-  const totalPrincipal = leftEntries.reduce((sum, entry) => sum + entry.principal, 0);
-  const totalPayment = leftEntries.reduce((sum, entry) => sum + entry.payment, 0);
-  const weightedAverageRate = totalPrincipal > 0
-    ? leftEntries.reduce((sum, entry) => sum + (entry.principal / totalPrincipal) * entry.rate, 0)
-    : 0;
+  const leftSummary = calculateSummaryTotals(leftEntries);
+  const rightSummary = calculateSummaryTotals(rightEntries);
+  const overallSummary = calculateSummaryTotals(entries);
 
   const colorForId = (id) => {
     const hues = [210, 260, 160, 20, 340, 40, 190, 280];
@@ -328,21 +357,12 @@ const LoanBubbles = () => {
                 ))
               )}
             </div>
-            <div className={styles.totalsRow}>
-              <div className={styles.totalName}>Totals</div>
-              <div className={styles.field}>
-                <span className={styles.label}>Principal</span>
-                <span className={styles.value}>{formatMoney(totalPrincipal)}</span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.label}>Monthly</span>
-                <span className={styles.value}>{formatMoney(totalPayment)}</span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.label}>Rate</span>
-                <span className={styles.value}>{formatPercent(weightedAverageRate)}</span>
-              </div>
-            </div>
+            <SummaryBubble
+              title="Totals"
+              totals={leftSummary}
+              formatMoney={formatMoney}
+              formatPercent={formatPercent}
+            />
           </div>
         </div>
 
@@ -393,10 +413,28 @@ const LoanBubbles = () => {
                 ))
               )}
             </div>
+            <SummaryBubble
+              title="Totals"
+              totals={rightSummary}
+              formatMoney={formatMoney}
+              formatPercent={formatPercent}
+            />
           </div>
         </div>
       </div>
 
+      <div className="row mt-3">
+        <div className="col-12">
+          <SummaryBubble
+            title="Overall Totals"
+            totals={overallSummary}
+            formatMoney={formatMoney}
+            formatPercent={formatPercent}
+            className={styles.overallSummary}
+          />
+        </div>
+      </div>
+ 
       {showImportModal && (
         <div className={styles.modalOverlay} onClick={() => setShowImportModal(false)}>
           <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
