@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chongie demo (SNES)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #game { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<script>
+  // Chongie DEMO (levels 1, 2, 4) in EmulatorJS 4.2.3 with the Snes9x core, loaded from the
+  // EmulatorJS CDN. Shown in an iframe by pages/chongie.js so the emulator is torn down when
+  // you leave the page. Only the demo ROM is on this site.
+  EJS_player = "#game";
+  EJS_core = "snes";
+  EJS_gameName = "chongie-demo";
+  EJS_gameUrl = "chongie-demo.sfc";
+  EJS_pathtodata = "https://cdn.emulatorjs.org/4.2.3/data/";
+  EJS_color = "#2e8b57";
+  EJS_startOnLoaded = true;
+</script>
+<script src="https://cdn.emulatorjs.org/4.2.3/data/loader.js"></script>
+</body>
+</html>

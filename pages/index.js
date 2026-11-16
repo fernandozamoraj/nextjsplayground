@@ -19,6 +19,7 @@ const TILES = [
   { href: '/threeDeeDemo',            label: '3D Demo',             desc: 'Homebrewed 3D engine using JS and canvas',               bg: '#6a3aaa', img: '/images/3d-demo.png' },
   { href: '/shapeworld',              label: 'Shape World',         desc: 'Walk a 3D world in first-person with WASD',              bg: '#b06020', img: '/images/shape-world.png' },
   { href: '/shooter',                 label: 'Shooter Game',        desc: 'Hunt down targets in a 3D arena, dodge tracking orbs',   bg: '#b03030', img: '/images/shooter-game.png' },
+  { href: '/chongie',                 label: 'Chongie (SNES)',      desc: 'Play the demo of my homebrew Super Nintendo game',        bg: '#2e8b57', img: '/images/chongie.png' },
   { href: 'https://fernandozamoraj.github.io/picorico/', label: 'Pico Rico Games', desc: 'Check out my Pico games', bg: '#1a5c2e', img: '/images/pico-games.png', external: true },
 ]
 
