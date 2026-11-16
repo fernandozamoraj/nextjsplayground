@@ -38,16 +38,21 @@ export default function ChongiePage() {
         65816 assembly. This is the free demo: levels 1, 2 and 4.
       </p>
 
+      {/* The emulator takes keyboard focus when it starts, and the browser scrolls the page to
+          the game: scrollMarginTop stops that scroll below the sticky site header (about 121 px)
+          instead of hiding the top of the game under it. 4:3 = the SNES picture as EmulatorJS
+          draws it, so there are no black bars above and below. */}
       <div
         style={{
           position: 'relative',
           width: '100%',
           maxWidth: 768,
-          aspectRatio: '768 / 720',
+          aspectRatio: '4 / 3',
           margin: '0 auto 0.5rem',
           background: '#000',
           borderRadius: 8,
           overflow: 'hidden',
+          scrollMarginTop: 130,
         }}
       >
         <iframe
@@ -55,7 +60,7 @@ export default function ChongiePage() {
           title="Chongie demo"
           allow="autoplay; fullscreen; gamepad; screen-wake-lock"
           allowFullScreen
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, scrollMarginTop: 130 }}
         />
       </div>
       <p className="text-muted text-center" style={{ fontSize: '0.9rem' }}>
