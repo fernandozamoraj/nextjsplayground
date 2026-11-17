@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import BackLink from '../comps/backLink';
 
 // Chongie: Fernando's homebrew SNES game. This page plays the free DEMO (levels 1, 2 and 4)
@@ -63,6 +64,9 @@ export default function ChongiePage() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, scrollMarginTop: 130 }}
         />
       </div>
+      <p className="text-center" style={{ marginBottom: '0.25rem' }}>
+        <Link href="/chongieMobile"><a style={{ color: '#2e8b57', fontWeight: 'bold' }}>On a phone or tablet? Play with touch controls &rarr;</a></Link>
+      </p>
       <p className="text-muted text-center" style={{ fontSize: '0.9rem' }}>
         Click the game once to give it the keyboard. Gamepads work too. Keys can be changed from the
         controller icon in the emulator&apos;s bottom bar.

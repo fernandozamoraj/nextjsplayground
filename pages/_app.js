@@ -10,7 +10,8 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <>
-      <SiteHeader />
+      {/* A page can set Page.hideHeader = true to get the whole screen (pages/chongieMobile.js). */}
+      {!Component.hideHeader && <SiteHeader />}
       <Component {...pageProps} />
     </>
   )

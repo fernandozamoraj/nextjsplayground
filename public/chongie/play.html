@@ -22,6 +22,12 @@
   EJS_pathtodata = "https://cdn.emulatorjs.org/4.2.3/data/";
   EJS_color = "#2e8b57";
   EJS_startOnLoaded = true;
+  // ?touch=1 (pages/chongieMobile.js): that page draws its own SNES pad under the game and
+  // presses buttons through EJS_emulator.gameManager.simulateInput, so EmulatorJS's overlay pad
+  // is switched off there instead of covering the picture.
+  if (new URLSearchParams(location.search).get("touch") === "1") {
+    EJS_defaultOptions = { "virtual-gamepad": "disabled" };
+  }
 </script>
 <script src="https://cdn.emulatorjs.org/4.2.3/data/loader.js"></script>
 </body>

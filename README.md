@@ -14,6 +14,8 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 | `/todoapp` | Simple todo list |
 | `/students` | Student records demo |
 | `/typingGame` | Typing speed game |
+| `/chongie` | Chongie, Fernando's SNES game: free demo in EmulatorJS (keyboard / gamepad) |
+| `/chongieMobile` | The same demo for phones: on-screen SNES pad under the game (see CHANGELOG.md) |
 
 ## Getting Started
 
